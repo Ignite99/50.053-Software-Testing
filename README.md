@@ -7,7 +7,7 @@ Makefile below for Windows users:
 CC=g++
 CFLAGS=-c -Wall
 LDFLAGS=
-SOURCES=./src/main.cpp
+SOURCES=./src/main.cpp ./src/fuzzer/fuzzer.cpp # Add your cpp files as you see fit
 OBJECTS=$(SOURCES:.cpp=.o)
 EXECUTABLE=Software_Testing_Project.exe
 
@@ -21,6 +21,7 @@ $(EXECUTABLE): $(OBJECTS)
 
 clean:
 	del .\src\*.o
+	del .\src\fuzzer\*.o
 	del Software_Testing_Project.exe
 ```
 
