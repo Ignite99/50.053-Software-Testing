@@ -5,7 +5,6 @@
 #include <cctype>
 #include <set>
 #include <fstream>
-#include <curl/curl.h>
 #include "./fuzzer/fuzzer.h"
 #include "./CoAP_Protocol/coap_protocol.h"
 #include "./Django_Web/django_web.h"
@@ -60,7 +59,7 @@ int main(int argc, char* argv[]) {
 
     } else if (project_type == "DJANGO") {
         std::cout << "[DJANGO] Fuzzer has initiated call to DJANGO Web Application!" << endl;
-        Django_Handler();
+        Django_Handler(url, request_type, input_file_path);
 
     } else if (project_type == "BLE") {
         std::cout << "[BLE] Fuzzer has initiated call to BLE_Zephyr!" << endl;
