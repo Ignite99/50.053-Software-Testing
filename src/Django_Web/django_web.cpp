@@ -2,6 +2,6 @@
 
 using namespace std;
 
-void testDjango() {
-    cout << "Django Web has been called!";
+void Django_Handler() {
+    cout << "Django Web has been called!" << endl;
 }

@@ -2,6 +2,6 @@
 
 using namespace std;
 
-void testCoAP() {
-    cout << "CoAP Protocol has been called!";
+void CoAP_Handler() {
+    cout << "CoAP Protocol has been called!" << endl;
 }

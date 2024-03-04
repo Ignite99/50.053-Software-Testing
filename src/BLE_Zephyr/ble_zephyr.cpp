@@ -2,6 +2,6 @@
 
 using namespace std;
 
-void testZephyr() {
-    cout << "BLE Zephyr has been called!";
+void BLE_Zephyr_Handler() {
+    cout << "BLE Zephyr has been called!" << endl;
 }
