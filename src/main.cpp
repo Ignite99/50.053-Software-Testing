@@ -8,9 +8,9 @@
 #include <curl/curl.h>
 #include "./fuzzer/fuzzer.h"
 
-// Valid request types
+// Valid request & project types
 std::set<std::string> valid_request_types = {"GET", "POST", "PUT", "HEAD", "DELETE"};
-std::set<std::string> valid_projects = {"coap", "django", "ble"};
+std::set<std::string> valid_projects = {"COAP", "DJANGO", "BLE"};
 
 int main(int argc, char* argv[]) {
     string project_type, url, request_type, response, line, input_file_path;
@@ -33,7 +33,7 @@ int main(int argc, char* argv[]) {
 
     // If proejct_type & request_type is correct
     if (!valid_projects.count(project_type)) {
-        cerr << "Invalid project type. Please enter coap/django/ble." << endl;
+        cerr << "Invalid project type. Please enter COAP/DJANGO/BLE." << endl;
         return 1;
     }
     if (!valid_request_types.count(request_type)) {
@@ -49,9 +49,20 @@ int main(int argc, char* argv[]) {
     }
 
     // This is where u guys call your functions 
-    while (std::getline(input_file, line)) {
-        std::cout << line << std::endl;
+    if (project_type == "COAP") {
+        std::cout << "[COAP] Fuzzer has initiated call to COAP!" << endl;
+
+    } else if (project_type == "DJANGO") {
+        std::cout << "[DJANGO] Fuzzer has initiated call to DJANGO Web Application!" << endl;
+
+    } else if (project_type == "BLE") {
+        std::cout << "[BLE] Fuzzer has initiated call to BLE_Zephyr!" << endl;
+
+    } else {
+        cerr << "Project type mutated. Project type: " << project_type << ". Check code now!" << endl;
+        return 1;
     }
+
 
     input_file.close();
 
