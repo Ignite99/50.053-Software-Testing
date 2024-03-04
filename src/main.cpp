@@ -5,6 +5,7 @@
 #include <cctype>
 #include <set>
 #include <fstream>
+#include <curl/curl.h>
 #include "./fuzzer/fuzzer.h"
 #include "./CoAP_Protocol/coap_protocol.h"
 #include "./Django_Web/django_web.h"

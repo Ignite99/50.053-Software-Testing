@@ -28,8 +28,8 @@ clean:
 Makefile for Linux/MACOS users (note I have not tested this in wsl or mac environments):
 ```
 CC=g++
-CFLAGS=-c -Wall
-LDFLAGS=
+CFLAGS=-c -Wall -lcurl
+LDFLAGS+=-lcurl
 SOURCES=./src/main.cpp ./src/fuzzer/fuzzer.cpp ./src/BLE_Zephyr/ble_zephyr.cpp ./src/CoAP_Protocol/coap_protocol.cpp ./src/Django_Web/django_web.cpp
 OBJECTS=$(SOURCES:.cpp=.o)
 EXECUTABLE=Software_Testing_Project.exe
@@ -37,12 +37,13 @@ EXECUTABLE=Software_Testing_Project.exe
 all: $(EXECUTABLE)
 
 $(EXECUTABLE): $(OBJECTS)
-	$(CC) $(LDFLAGS) $(OBJECTS) -o $@
+	$(CC) $(LDFLAGS) $(OBJECTS) -o $@ -lcurl
 
 .cpp.o:
 	$(CC) $(CFLAGS) $< -o $@
 
 clean:
+	rm -rf ./*.o
 	rm -rf ./src/*.o
 	rm -rf ./src/fuzzer/*.o
 	rm -rf ./src/BLE_Zephyr/*.o
