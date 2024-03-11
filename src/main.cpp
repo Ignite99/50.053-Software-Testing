@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cctype>
 #include <set>
+#include <csignal>
 #include <fstream>
 #include <curl/curl.h>
 #include "./fuzzer/fuzzer.h"
@@ -11,14 +12,22 @@
 #include "./Django_Web/django_web.h"
 #include "./BLE_Zephyr/ble_zephyr.h"
 
-
 // Valid request & project types
 std::set<std::string> valid_request_types = {"GET", "POST", "PUT", "HEAD", "DELETE"};
 std::set<std::string> valid_projects = {"COAP", "DJANGO", "BLE"};
 
-// Call ./Software_Testing_Project.exe ble test get ./src/inputs/test1.txt
+void signal_handler(int signal) {
+    if (signal == SIGINT) {
+        cout << "Caught Ctrl+C, exiting..." << endl;
+        exit(0);
+    }
+}
+
+// Call ./Software_Testing_Project.exe
 int main(int argc, char* argv[]) {
     string project_type, url, request_type, response, line, input_file_path, output_file_path;
+
+    signal(SIGINT, signal_handler);
 
     // Input project_type
     while(true){
