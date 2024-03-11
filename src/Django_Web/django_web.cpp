@@ -17,7 +17,7 @@ void signal_handler(int signal) {
     }
 }
 
-int Django_Handler(string url, string request_type) {
+int Django_Handler(string url, string request_type, string input_file_path) {
     cout << "Django Web has been called!" << endl;
 
     signal(SIGINT, signal_handler);
