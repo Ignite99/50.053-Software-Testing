@@ -8,17 +8,38 @@ using namespace std;
 
 struct curl_slist *headers;
 
-static size_t write_callback(char *ptr, size_t size, size_t nmemb, void *userp) {
-  return size * nmemb;
+static size_t write_callback(void *ptr, size_t size, size_t nmemb, FILE *stream) {
+    size_t written = fwrite(ptr, size, nmemb, stream);
+    fprintf(stream, "\n");
+    return written;
 }
 
+int check_response_error(CURLcode res, long http_code, string request_type) {
+    if (http_code == 200) {
+        cout << request_type << " request suceeded!" << endl;
+        cout << "HTTP Status: " << http_code << endl;
+        return 0;
+    } else if (http_code != 200) {
+        cout << request_type << " request failed!" << endl;
+        cerr << "HTTP status code: " << http_code << endl;
+        return 1;
+    }
+
+    return 1;
+}
+
+
 int Django_Handler(string url, string request_type, string input_file_path) {
-    ofstream output_file;
+    FILE *output_file;
     CURLcode res;
     CURL *curl;
+    string response_body;
+    long http_code;
+    int error_status;
 
     cout << "Django Web has been called!" << endl;
 
+    // Setting up url
     curl_global_init(CURL_GLOBAL_ALL);
     curl = curl_easy_init();
     if (!curl) {
@@ -26,19 +47,36 @@ int Django_Handler(string url, string request_type, string input_file_path) {
         return 1;
     }
     curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &output_file);
 
+    // Setting up dump for responses, and subsequent iterations of fuzzing
+    output_file = fopen("./src/fuzzing_responses/response.txt", "ab");
+    if (!output_file) {
+        cerr << "Failed to open output file" << endl;
+        curl_easy_cleanup(curl);
+        curl_global_cleanup();
+        return 1;
+    }
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, output_file);
+
+    // Setting base value for http_code
+    http_code = 0;
+
+    // GET/POST requests set up
     if (request_type == "GET") {
         res = curl_easy_perform(curl);
-    } else if (request_type == "POST") {
-        cout << "POST IS CALLED!" << input_file_path << endl;
+        curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
 
+        // Parse status code
+        error_status = check_response_error(res, http_code, request_type);
+        if (error_status != 0) {
+            return 1;
+        } 
+
+    } else if (request_type == "POST") {
         ifstream input_file(input_file_path);
         string post_data((istreambuf_iterator<char>(input_file)), istreambuf_iterator<char>());
         input_file.close();
-
-        cout << "POST DATA: "<< post_data.c_str() << endl;
 
         curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post_data.c_str());
 
@@ -50,26 +88,26 @@ int Django_Handler(string url, string request_type, string input_file_path) {
         // POST request performed
         res = curl_easy_perform(curl);
 
+        curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+        // Parse status code
+        error_status = check_response_error(res, http_code, request_type);
+        if (error_status != 0) {
+            return 1;
+        }
         // Clean headers
         curl_slist_free_all(headers);
+
     } else {
         cerr << "Invalid request type: " << request_type << endl;
         curl_easy_cleanup(curl);
         curl_global_cleanup();
-        return 1;
-    }
-
-    // Check response
-    if (res != CURLE_OK) {
-        cerr << "curl_easy_perform() failed: " << curl_easy_strerror(res) << endl;
+        fclose(output_file);
         return 1;
     }
 
     curl_easy_cleanup(curl);
     curl_global_cleanup();
+    fclose(output_file);
 
-    cout << request_type << " request sent successfully!" << endl;
-
-    output_file.close();
     return 0;
 }
