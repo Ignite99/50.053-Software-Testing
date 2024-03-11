@@ -18,7 +18,7 @@ std::set<std::string> valid_projects = {"COAP", "DJANGO", "BLE"};
 
 // Call ./Software_Testing_Project.exe ble test get ./src/inputs/test1.txt
 int main(int argc, char* argv[]) {
-    string project_type, url, request_type, response, line, input_file_path;
+    string project_type, url, request_type, response, line, input_file_path, output_file_path;
 
     // Input project_type
     while(true){
@@ -60,6 +60,19 @@ int main(int argc, char* argv[]) {
             break;
         }
     }
+
+    // Input output_file_path
+    std::ifstream output_file(output_file_path);
+    while(true){
+        std::cout << "\nWhat is your output file path (output file contains statistics and bug report)?" << endl;
+        std::cin >> output_file_path;
+        std::ifstream output_file(output_file_path);
+        if (!output_file.is_open()) {
+            std::cerr << "Error: Could not open file '" << output_file_path << "'." << endl;
+        } else {
+            break;
+        }
+    }
     
     // This is where you guys call your functions 
     if (project_type == "COAP") {
@@ -81,5 +94,6 @@ int main(int argc, char* argv[]) {
 
     // Close input file
     input_file.close();
+    output_file.close();
     return 0;
 }
