@@ -18,13 +18,13 @@ std::set<std::string> valid_projects = {"COAP", "DJANGO", "BLE"};
 
 // Call ./Software_Testing_Project.exe ble test get ./src/inputs/test1.txt
 int main(int argc, char* argv[]) {
-    string project_type, url, request_type, response, line, input_file_path;
+    string project_type, url, request_type, response, line;
 
     // Check for no. of arguments
-    if (argc < 5) {
+    if (argc < 4) {
         std::cerr << "Error: Invalid arguments provided." << endl;
         std::cerr << "The expected format is:" << endl;
-        std::cerr << std::string(argv[0]) << " <project type> <url> <request_type> <input_file_path>" << endl;
+        std::cerr << std::string(argv[0]) << " <project type> <url> <request_type>" << endl;
         return 1;
     }
 
@@ -46,13 +46,6 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    input_file_path = argv[4];
-    std::ifstream input_file(input_file_path);
-    if (!input_file.is_open()) {
-        std::cerr << "Error: Could not open file '" << input_file_path << "'." << endl;
-        return 1;
-    }
-
     // This is where you guys call your functions 
     if (project_type == "COAP") {
         std::cout << "[COAP] Fuzzer has initiated call to COAP!" << endl;
@@ -60,7 +53,7 @@ int main(int argc, char* argv[]) {
 
     } else if (project_type == "DJANGO") {
         std::cout << "[DJANGO] Fuzzer has initiated call to DJANGO Web Application!" << endl;
-        Django_Handler(url, request_type, input_file_path);
+        Django_Handler(url, request_type);
 
     } else if (project_type == "BLE") {
         std::cout << "[BLE] Fuzzer has initiated call to BLE_Zephyr!" << endl;
@@ -71,7 +64,5 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    // Close input file
-    input_file.close();
     return 0;
 }
