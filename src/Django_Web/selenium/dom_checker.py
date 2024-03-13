@@ -1,24 +1,21 @@
+import chromedriver_autoinstaller
 from selenium import webdriver
+from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-
-# Idk hwo dafuq i run my webdriver on wsl wtf is this HAHHAHAHHAHA
-webdriver_path = "/path/to/your/webdriver"
-
-
 url = "http://127.0.0.1:8000"
-driver = webdriver.Chrome(executable_path=webdriver_path)
+
+chromedriver_autoinstaller.install()
+driver = webdriver.Chrome()
+print("Started driver")
 driver.get(url)
+elem = driver.find_element(By.CLASS_NAME, "mb-4")
 
-try:
-    element = WebDriverWait(driver, 10).until(
-        EC.presence_of_element_located((By.ID, "your_element_id_here"))
-    )
-    print("Element found!")
-except:
-    print("Element not found or took too long to load.")
+if elem is not None:
+    print("Found element with class 'mb-4' found!")
+else: 
+    print("Element with class 'mb-4' not found")
 
-
-driver.quit()
+driver.close()
