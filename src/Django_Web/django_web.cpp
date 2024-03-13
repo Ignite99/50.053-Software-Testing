@@ -3,6 +3,8 @@
 #include <csignal>
 #include <fstream>
 #include <string>
+#include <thread>
+#include <chrono>
 
 using namespace std;
 
@@ -12,6 +14,27 @@ static size_t write_callback(void *ptr, size_t size, size_t nmemb, FILE *stream)
     size_t written = fwrite(ptr, size, nmemb, stream);
     fprintf(stream, "\n");
     return written;
+}
+
+void monitorFile(const std::string& filename) {
+    std::ifstream file(filename);
+    std::string line;
+
+    try {
+        while (true) {
+            while (std::getline(file, line)) {
+                std::cout << "Line: " << line << std::endl;
+            }
+            if (file.eof()) {
+                break;
+            }
+            file.clear();
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+        }
+    } catch (const std::exception& e) {
+        std::cerr << "Exception caught: " << e.what() << std::endl;
+    }
+    
 }
 
 int check_response_error(CURLcode res, long http_code, string request_type) {
@@ -33,7 +56,7 @@ int Django_Handler(string url, string request_type, string input_file_path) {
     FILE *output_file;
     CURLcode res;
     CURL *curl;
-    string response_body;
+    string response_body, selenium_filename;
     long http_code;
     int error_status;
 
@@ -89,11 +112,17 @@ int Django_Handler(string url, string request_type, string input_file_path) {
         res = curl_easy_perform(curl);
 
         curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+
         // Parse status code
         error_status = check_response_error(res, http_code, request_type);
         if (error_status != 0) {
             return 1;
         }
+
+        // Selenium filename to track
+        selenium_filename = "./src/Django_Web/selenium/selenium_output.txt";
+        monitorFile(selenium_filename);
+
         // Clean headers
         curl_slist_free_all(headers);
 
