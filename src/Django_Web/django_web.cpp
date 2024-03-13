@@ -20,21 +20,16 @@ void monitorFile(const std::string& filename) {
     std::ifstream file(filename);
     std::string line;
 
-    try {
-        while (true) {
-            while (std::getline(file, line)) {
-                std::cout << "Line: " << line << std::endl;
-            }
-            if (file.eof()) {
-                break;
-            }
-            file.clear();
-            std::this_thread::sleep_for(std::chrono::seconds(1));
+    while (true) {
+        while (std::getline(file, line)) {
+            std::cout << "Line: " << line << std::endl;
         }
-    } catch (const std::exception& e) {
-        std::cerr << "Exception caught: " << e.what() << std::endl;
+        if (file.eof()) {
+            break;
+        }
+        file.clear();
+        std::this_thread::sleep_for(std::chrono::seconds(1));
     }
-    
 }
 
 int check_response_error(CURLcode res, long http_code, string request_type) {
@@ -121,7 +116,12 @@ int Django_Handler(string url, string request_type, string input_file_path) {
 
         // Selenium filename to track
         selenium_filename = "./src/Django_Web/selenium/selenium_output.txt";
-        monitorFile(selenium_filename);
+        try {
+            std::thread monitorThread(monitorFile, selenium_filename);
+            monitorThread.join();
+        } catch (const std::exception& e) {
+            std::cerr << "Error creating thread: " << e.what() << std::endl;
+        }
 
         // Clean headers
         curl_slist_free_all(headers);
