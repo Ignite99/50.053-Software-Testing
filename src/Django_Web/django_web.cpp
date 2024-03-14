@@ -7,6 +7,7 @@
 
 using namespace std;
 
+
 struct curl_slist *headers;
 
 CURL* curl;
@@ -122,15 +123,15 @@ int Django_Test_Driver(int energy, string url, string request_type, string input
     initialise_requests(url);
 
     while (testing_incomplete) {
-        // Send Request to URL
-        request_sender(output_file, curl, request_type, input_file_path);
-        
-        if (accumulated_iterations == energy) {
-            testing_incomplete = false;
-            break;
-        } else {
+
+        // This will generate all the unique outputs needed before next mutation
+        while (accumulated_iterations != energy) {
             accumulated_iterations++;
+            request_sender(output_file, curl, request_type, input_file_path);
         }
+
+        testing_incomplete = false;
+        
     }
 
     // Dealloc all memory allocated to file, headers and curl
