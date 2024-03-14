@@ -3,8 +3,7 @@
 #include <csignal>
 #include <fstream>
 #include <string>
-#include <thread>
-#include <chrono>
+#include "../consts.h"
 
 using namespace std;
 
@@ -33,19 +32,28 @@ void monitorFile(const std::string& filename) {
 }
 
 int check_response_error(CURLcode res, long http_code, string request_type) {
-    if (http_code == 200) {
-        cout << request_type << " request suceeded!" << endl;
-        cout << "HTTP Status: " << http_code << endl;
-        return 0;
-    } else if (http_code != 200) {
-        cout << request_type << " request failed!" << endl;
-        cerr << "HTTP status code: " << http_code << endl;
-        return 1;
+    switch(http_code) {
+        case 200:
+            cout << request_type << " request suceeded!" << endl;
+            cout << "HTTP Status: " << http_code << ", " << HTTP_STATUS_MESSAGES.at(http_code)<< endl;
+            return 0;
+        case 201:
+            cout << request_type << " create request suceeded!" << endl;
+            cout << "HTTP Status: " << http_code << ", " << HTTP_STATUS_MESSAGES.at(http_code)<< endl;
+            return 0;
+        case 202:
+            cout << request_type << " accept request suceeded!" << endl;
+            cout << "HTTP Status: " << http_code << ", " << HTTP_STATUS_MESSAGES.at(http_code)<< endl;
+            return 0;
+        default:
+            cout << request_type << " request failed!" << endl;
+            cerr << "HTTP status code: " << http_code << ", " << HTTP_STATUS_MESSAGES.at(http_code) << endl;
+            return 1;
     }
 
+    cerr << "Error not caught within responses!" << endl;
     return 1;
 }
-
 
 int Django_Handler(string url, string request_type, string input_file_path) {
     FILE *output_file;

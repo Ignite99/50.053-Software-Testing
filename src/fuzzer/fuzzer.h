@@ -3,6 +3,7 @@
 
 #include <random>
 #include <string>
+#include <nlohmann/json.hpp>
 
 using namespace std;
 
