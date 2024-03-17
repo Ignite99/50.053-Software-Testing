@@ -8,12 +8,14 @@
 #include <nlohmann/json.hpp>
 #include "../consts.h"
 #include "../fuzzer/fuzzer.h"
+#include "../HTML_Logger/html_logger.h"
 
 using namespace std;
 using json = nlohmann::json;
 
-
 struct curl_slist *headers;
+
+HTMLLogger html_logger("./src/HTML_Logger/", "testing.html", "DJANGO");
 
 typedef struct json_seed {
     json data;
@@ -95,8 +97,13 @@ void request_sender(FILE* output_file, CURL* curl, string request_type, string b
         res = curl_easy_perform(curl);
 
         curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+
         // Parse status code
         check_response(res, http_code, request_type);
+
+        // Add to logs
+        html_logger.add_row("16/03/2024", request_type, body, to_string(http_code));
+
         // Clean headers
         curl_slist_free_all(headers);
     } else {
@@ -132,6 +139,9 @@ int Django_Test_Driver(int energy, string url, string request_type, string input
     bool testing_incomplete;
     list<json_seed> input_q;
 
+    // create html logger file
+    html_logger.create_file();
+
     // Check if the testing is complete, if so break out of while loop
     testing_incomplete = true;
 
@@ -164,6 +174,7 @@ int Django_Test_Driver(int energy, string url, string request_type, string input
             cur_seed.data[cur_seed.key_to_mutate] = mutated_string;
             input_q.push_back(cur_seed);
             string json_body = cur_seed.data.dump();
+
             request_sender(output_file, curl, request_type, json_body);
         }
 
@@ -173,6 +184,8 @@ int Django_Test_Driver(int energy, string url, string request_type, string input
             testing_incomplete = false;
         }
     }
+
+    html_logger.close_file();
 
     // Dealloc all memory allocated to file, headers and curl
     clean_requests(curl, output_file);
