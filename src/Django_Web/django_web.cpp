@@ -7,7 +7,11 @@
 
 using namespace std;
 
+
 struct curl_slist *headers;
+
+CURL* curl;
+FILE* output_file;
 
 static size_t write_callback(void *ptr, size_t size, size_t nmemb, FILE *stream) {
     size_t written = fwrite(ptr, size, nmemb, stream);
@@ -15,7 +19,7 @@ static size_t write_callback(void *ptr, size_t size, size_t nmemb, FILE *stream)
     return written;
 }
 
-int check_response_error(CURLcode res, long http_code, string request_type) {
+int check_response(CURLcode res, long http_code, string request_type) {
     switch(http_code) {
         case 200:
             cout << request_type << " request suceeded!" << endl;
@@ -39,49 +43,23 @@ int check_response_error(CURLcode res, long http_code, string request_type) {
     return 1;
 }
 
-int Django_Handler(string url, string request_type, string input_file_path) {
-    FILE *output_file;
-    CURLcode res;
-    CURL *curl;
-    string response_body;
+void clean_requests(CURL* curl, FILE *output_file) {
+    curl_easy_cleanup(curl);
+    curl_global_cleanup();
+    fclose(output_file);
+}
+
+void request_sender(FILE* output_file, CURL* curl, string request_type, string input_file_path) {
     long http_code;
-    int error_status;
+    CURLcode res;
 
-    cout << "Django Web has been called!" << endl;
-
-    // Setting up url
-    curl_global_init(CURL_GLOBAL_ALL);
-    curl = curl_easy_init();
-    if (!curl) {
-        cerr << "curl_easy_init() failed" << endl;
-        return 1;
-    }
-    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-
-    // Setting up dump for responses, and subsequent iterations of fuzzing
-    output_file = fopen("./src/fuzzing_responses/response.txt", "ab");
-    if (!output_file) {
-        cerr << "Failed to open output file" << endl;
-        curl_easy_cleanup(curl);
-        curl_global_cleanup();
-        return 1;
-    }
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, output_file);
-
-    // Setting base value for http_code
     http_code = 0;
 
     // GET/POST requests set up
     if (request_type == "GET") {
         res = curl_easy_perform(curl);
         curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
-
-        // Parse status code
-        error_status = check_response_error(res, http_code, request_type);
-        if (error_status != 0) {
-            return 1;
-        } 
+        check_response(res, http_code, request_type); 
 
     } else if (request_type == "POST") {
         ifstream input_file(input_file_path);
@@ -100,24 +78,63 @@ int Django_Handler(string url, string request_type, string input_file_path) {
 
         curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
         // Parse status code
-        error_status = check_response_error(res, http_code, request_type);
-        if (error_status != 0) {
-            return 1;
-        }
+        check_response(res, http_code, request_type);
         // Clean headers
         curl_slist_free_all(headers);
-
     } else {
         cerr << "Invalid request type: " << request_type << endl;
-        curl_easy_cleanup(curl);
-        curl_global_cleanup();
-        fclose(output_file);
-        return 1;
+    }
+}
+
+void initialise_requests(string url) {
+    curl = nullptr;
+    output_file = nullptr;
+
+    curl_global_init(CURL_GLOBAL_ALL);
+    curl = curl_easy_init();
+    if (!curl) {
+        cerr << "curl_easy_init() failed" << endl;
     }
 
-    curl_easy_cleanup(curl);
-    curl_global_cleanup();
-    fclose(output_file);
+    // Setting output file. TODO: Modify this according to the mutation and fuzzer
+    output_file = fopen("./src/fuzzing_responses/response.txt", "ab");
+    if (!output_file) {
+        cerr << "Failed to open output file" << endl;
+        curl_easy_cleanup(curl);
+        curl_global_cleanup();
+    }
 
-    return 0;
+    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, output_file);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
 }
+
+int Django_Test_Driver(int energy, string url, string request_type, string input_file_path) {
+    int accumulated_iterations;
+    bool testing_incomplete;
+
+    // Check if the testing is complete, if so break out of while loop
+    testing_incomplete = true;
+
+    // Iterations of the given test, iterations 1 because energy starts at 1.
+    accumulated_iterations = 0;
+
+    // Initialise all curl requests with the url and output file
+    initialise_requests(url);
+
+    while (testing_incomplete) {
+
+        // This will generate all the unique outputs needed before next mutation
+        while (accumulated_iterations != energy) {
+            accumulated_iterations++;
+            request_sender(output_file, curl, request_type, input_file_path);
+        }
+
+        testing_incomplete = false;
+        
+    }
+
+    // Dealloc all memory allocated to file, headers and curl
+    clean_requests(curl, output_file);
+    return 0;
+} 
