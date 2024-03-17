@@ -15,7 +15,7 @@ using json = nlohmann::json;
 
 struct curl_slist *headers;
 
-HTMLLogger html_logger("./src/HTML_Logger/", "testing.html", "DJANGO");
+HTMLLogger html_logger("./src/fuzzing_responses/", "logs.html", "DJANGO");
 
 typedef struct json_seed {
     json data;

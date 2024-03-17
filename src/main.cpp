@@ -31,7 +31,7 @@ int main(int argc, char* argv[]) {
 
     signal(SIGINT, signal_handler);
 
-    if(argc == 6){
+    if (argc == 6){
         project_type = argv[1];
         url = argv[2];
         request_type = argv[3];
@@ -64,9 +64,9 @@ int main(int argc, char* argv[]) {
             return 1;
         } 
 
-    } else if(argc == 1){
+    } else if (argc == 1){
         // Input project_type
-        while(true){
+        while (true){
             std::cout << "What fuzzing target are you testing? [Options: COAP, DJANGO, BLE]" << endl;
             std::cin >> project_type;
             std::transform(project_type.begin(), project_type.end(), project_type.begin(), ::toupper);
@@ -82,7 +82,7 @@ int main(int argc, char* argv[]) {
         std::cin >> url;
         
         // Input request_type
-        while(true){
+        while (true){
             std::cout << "\nWhat is your request type? [Options: GET, POST, PUT, HEAD, DELETE]" << endl;
             std::cin >> request_type;
             std::transform(request_type.begin(), request_type.end(), request_type.begin(), ::toupper);
@@ -94,7 +94,7 @@ int main(int argc, char* argv[]) {
         }
         
         // Input input_file_path
-        while(true){
+        while (true){
             std::cout << "\nWhat is your seed input's file path?" << endl;
             std::cin >> input_file_path;
             std::ifstream input_file(input_file_path);
@@ -106,8 +106,8 @@ int main(int argc, char* argv[]) {
         }
 
         // Input output_file_path
-        while(true){
-            std::cout << "\nWhat is your output file path (output file contains statistics and bug report)?" << endl;
+        while (true){
+            std::cout << "\nWhat is your output file path (output.html containing statistics and bug report)?" << endl;
             std::cin >> output_file_path;
             std::ifstream output_file(output_file_path);
             if (!output_file.is_open()) {

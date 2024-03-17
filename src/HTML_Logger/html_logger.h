@@ -9,23 +9,9 @@ using namespace std;
 
 class HTMLLogger {
 private:
-    string header = 
-        R"(<!DOCTYPE html>
-        <html lang="en" class="scroll-smooth" dir="ltr">
-            <head>
-                <meta charset="UTF-8" />
-                <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-                <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-                <link href="output_style.css" rel="stylesheet">
-                <title>Fuzzer Output Log</title>
-            </head>
-            <body>)";
-    string footer = 
-        R"(     </table>
-            </body>
-        </html>
-        )";
-    string table_columns=
+    string headerFilePath = "./src/HTML_Logger/formats/header.html";
+    string footerFilePath = "./src/HTML_Logger/formats/footer.html";
+    string table_columns =
         R"(
             <table>
                 <tr style="background-color:lightgrey;">
