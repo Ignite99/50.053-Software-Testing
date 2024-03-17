@@ -117,7 +117,7 @@ int Django_Test_Driver(int energy, string url, string request_type, string input
     testing_incomplete = true;
 
     // Iterations of the given test, iterations 1 because energy starts at 1.
-    accumulated_iterations = 1;
+    accumulated_iterations = 0;
 
     // Initialise all curl requests with the url and output file
     initialise_requests(url);
