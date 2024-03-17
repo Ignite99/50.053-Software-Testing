@@ -2,16 +2,39 @@
 #include <curl/curl.h>
 #include <csignal>
 #include <fstream>
+#include <sstream>
 #include <string>
+#include <list>
+#include <nlohmann/json.hpp>
 #include "../consts.h"
+#include "../fuzzer/fuzzer.h"
+#include "../HTML_Logger/html_logger.h"
 
 using namespace std;
-
+using json = nlohmann::json;
 
 struct curl_slist *headers;
 
+HTMLLogger html_logger("./src/HTML_Logger/", "testing.html", "DJANGO");
+
+typedef struct json_seed {
+    json data;
+    string key_to_mutate;
+    int energy;
+} json_seed;
+
 CURL* curl;
 FILE* output_file;
+
+json parse_json(string input_file_path) {
+    json json_data;
+
+
+    ifstream f(input_file_path);
+    json data = json::parse(f);
+
+    return data;
+}
 
 static size_t write_callback(void *ptr, size_t size, size_t nmemb, FILE *stream) {
     size_t written = fwrite(ptr, size, nmemb, stream);
@@ -49,7 +72,7 @@ void clean_requests(CURL* curl, FILE *output_file) {
     fclose(output_file);
 }
 
-void request_sender(FILE* output_file, CURL* curl, string request_type, string input_file_path) {
+void request_sender(FILE* output_file, CURL* curl, string request_type, string body) {
     long http_code;
     CURLcode res;
 
@@ -59,14 +82,11 @@ void request_sender(FILE* output_file, CURL* curl, string request_type, string i
     if (request_type == "GET") {
         res = curl_easy_perform(curl);
         curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
-        check_response(res, http_code, request_type); 
+        check_response(res, http_code, request_type);
 
     } else if (request_type == "POST") {
-        ifstream input_file(input_file_path);
-        string post_data((istreambuf_iterator<char>(input_file)), istreambuf_iterator<char>());
-        input_file.close();
-
-        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post_data.c_str());
+        cout << body << endl;
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, body.c_str());
 
         // Setting headers
         headers = NULL;
@@ -80,6 +100,10 @@ void request_sender(FILE* output_file, CURL* curl, string request_type, string i
 
         // Parse status code
         check_response(res, http_code, request_type);
+
+        // Add to logs
+        html_logger.add_row("16/03/2024", request_type, body, to_string(http_code));
+
         // Clean headers
         curl_slist_free_all(headers);
     } else {
@@ -113,6 +137,10 @@ void initialise_requests(string url) {
 int Django_Test_Driver(int energy, string url, string request_type, string input_file_path) {
     int accumulated_iterations;
     bool testing_incomplete;
+    list<json_seed> input_q;
+
+    // create html logger file
+    html_logger.create_file();
 
     // Check if the testing is complete, if so break out of while loop
     testing_incomplete = true;
@@ -123,17 +151,41 @@ int Django_Test_Driver(int energy, string url, string request_type, string input
     // Initialise all curl requests with the url and output file
     initialise_requests(url);
 
+    json json_input = parse_json(input_file_path);
+
+    for (auto& el : json_input.items()) {
+        json_seed seed;
+        seed.data = json_input;
+        seed.key_to_mutate = el.key();
+        seed.energy = 3;
+        input_q.push_back(seed);
+    }
+
     while (testing_incomplete) {
 
-        // This will generate all the unique outputs needed before next mutation
-        while (accumulated_iterations != energy) {
-            accumulated_iterations++;
-            request_sender(output_file, curl, request_type, input_file_path);
+        json_seed cur_seed = input_q.front();
+        input_q.pop_front();
+
+        for (int i = 0; i < cur_seed.energy; i++) {
+            //TODO: Mutate
+            string value_to_mutate = cur_seed.data[cur_seed.key_to_mutate];
+            string mutated_string = bit_flip(value_to_mutate);
+            //TODO: Mutate ^^^
+            cur_seed.data[cur_seed.key_to_mutate] = mutated_string;
+            input_q.push_back(cur_seed);
+            string json_body = cur_seed.data.dump();
+
+            request_sender(output_file, curl, request_type, json_body);
         }
 
-        testing_incomplete = false;
-        
+        accumulated_iterations++;
+
+        if (accumulated_iterations > 1000) {
+            testing_incomplete = false;
+        }
     }
+
+    html_logger.close_file();
 
     // Dealloc all memory allocated to file, headers and curl
     clean_requests(curl, output_file);
