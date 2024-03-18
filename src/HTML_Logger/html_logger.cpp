@@ -3,6 +3,7 @@
 #include <fstream>
 #include <string>
 #include <sstream>
+#include <vector>
 #include "html_logger.h"
 
 using namespace std;
@@ -18,7 +19,7 @@ void HTMLLogger::create_file(){
 
     header_file.open(headerFilePath);
     if (!header_file){
-        cout << "HTMLLogger Header file not found!" << endl;
+        cout << "@HTMLLogger: Header file not found!" << endl;
         return;
     }
 
@@ -40,15 +41,50 @@ void HTMLLogger::create_file(){
     }
 
     // TODO - display any other overall stats
-    output_file << table_columns;
 }
 
-void HTMLLogger::add_row(string time, string request_type, string input, string output){
-    cout << "here" << endl;
-    output_file << "<tr><th>" << time << "</th>\n";
-    output_file << "<th>" << request_type << "</th>\n";
-    output_file << "<th>" << input << "</th>\n";
-    output_file << "<th>" << output << "</th></tr>\n";
+// create table headings and update column size
+void HTMLLogger::create_table_headings(string style, const vector<string> &column_names){
+    column_num = column_names.size();
+
+    output_file << R"( <table> )" << endl;
+    output_file << R"( <tr style=")" << style << R"(;">)" << endl;
+    for(int i = 0; i < column_num; i++){
+        output_file << R"(<th>)" << column_names[i] << R"(</th>)" << endl;
+    }
+    output_file << R"(</tr>)" << endl;
+}
+
+// add_row without style
+void HTMLLogger::add_row(const vector<string> &row){
+    int row_size = row.size();
+
+    if(row_size != column_num){
+        cout << "@HTMLLogger: Invalid number of columns!" << endl;
+        return;
+    }
+
+    output_file << "<tr>" << endl;
+    for(int i = 0; i < row_size; i++){
+        output_file << "<th>" << row[i] << "</th>" << endl;
+    }
+    output_file << "</tr>" << endl;
+}
+
+// add_row with style
+void HTMLLogger::add_row(string style, const vector<string> &row){
+    int row_size = row.size();
+
+    if(row_size != column_num){
+        cout << "@HTMLLogger: Invalid number of columns!";
+        return;
+    }
+
+    output_file << "<tr>" << endl;
+    for(int i = 0; i < row_size; i++){
+        output_file << R"(<th style=")" << style << R"(;">)" << row[i] << R"(</th>)" << endl;
+    }
+    output_file << "</tr>" << endl;
 }
 
 void HTMLLogger::close_file(){
@@ -56,7 +92,7 @@ void HTMLLogger::close_file(){
 
     footer_file.open(footerFilePath);
     if (!footer_file){
-        cout << "HTMLLogger Footer file not found!" << endl;
+        cout << "@HTMLLogger: Footer file not found!" << endl;
         return;
     }
 

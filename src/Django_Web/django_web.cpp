@@ -29,7 +29,6 @@ FILE* output_file;
 json parse_json(string input_file_path) {
     json json_data;
 
-
     ifstream f(input_file_path);
     json data = json::parse(f);
 
@@ -40,6 +39,26 @@ static size_t write_callback(void *ptr, size_t size, size_t nmemb, FILE *stream)
     size_t written = fwrite(ptr, size, nmemb, stream);
     fprintf(stream, "\n");
     return written;
+}
+
+// log responses in HTMLLogger
+void log_responses(string time, string request_type, string body, int http_code){
+    vector<string> row = {time, request_type, body, to_string(http_code)};
+
+    switch (http_code){
+        case 200:
+            html_logger.add_row("background-color:palegreen", row);
+            break;
+        case 201:
+            html_logger.add_row("background-color:palegreen", row);
+            break;
+        case 202:
+            html_logger.add_row("background-color:palegreen", row);
+            break;
+        default:
+            html_logger.add_row("background-color:tomato", row);
+            break;
+    }
 }
 
 int check_response(CURLcode res, long http_code, string request_type) {
@@ -101,14 +120,15 @@ void request_sender(FILE* output_file, CURL* curl, string request_type, string b
         // Parse status code
         check_response(res, http_code, request_type);
 
-        // Add to logs
-        html_logger.add_row("16/03/2024", request_type, body, to_string(http_code));
-
         // Clean headers
         curl_slist_free_all(headers);
+
     } else {
         cerr << "Invalid request type: " << request_type << endl;
     }
+
+    // log responses in html_logger
+    log_responses("15/2/2024", request_type, body, http_code);
 }
 
 void initialise_requests(string url) {
@@ -141,6 +161,8 @@ int Django_Test_Driver(int energy, string url, string request_type, string input
 
     // create html logger file
     html_logger.create_file();
+    vector<string> column_names = {"time", "request type", "sent input", "received output"};
+    html_logger.create_table_headings("background-color:lightgrey", column_names);
 
     // Check if the testing is complete, if so break out of while loop
     testing_incomplete = true;
@@ -180,7 +202,7 @@ int Django_Test_Driver(int energy, string url, string request_type, string input
 
         accumulated_iterations++;
 
-        if (accumulated_iterations > 1000) {
+        if (accumulated_iterations > 20) {
             testing_incomplete = false;
         }
     }
