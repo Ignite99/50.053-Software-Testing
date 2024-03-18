@@ -6,6 +6,7 @@
 #include <string>
 #include <list>
 #include <nlohmann/json.hpp>
+#include <ctime>
 #include "../consts.h"
 #include "../fuzzer/fuzzer.h"
 #include "../HTML_Logger/html_logger.h"
@@ -42,8 +43,14 @@ static size_t write_callback(void *ptr, size_t size, size_t nmemb, FILE *stream)
 }
 
 // log responses in HTMLLogger
-void log_responses(string time, string request_type, string body, int http_code){
-    vector<string> row = {time, request_type, body, to_string(http_code)};
+void log_responses(string request_type, string body, int http_code){
+    // current date/time based on current system
+    time_t now = time(0);
+    
+    // convert now to string form
+    char* dt = ctime(&now);
+
+    vector<string> row = {dt, request_type, body, to_string(http_code)};
 
     switch (http_code){
         case 200:
@@ -128,7 +135,7 @@ void request_sender(FILE* output_file, CURL* curl, string request_type, string b
     }
 
     // log responses in html_logger
-    log_responses("15/2/2024", request_type, body, http_code);
+    log_responses(request_type, body, http_code);
 }
 
 void initialise_requests(string url) {
@@ -161,7 +168,7 @@ int Django_Test_Driver(int energy, string url, string request_type, string input
 
     // create html logger file
     html_logger.create_file();
-    vector<string> column_names = {"time", "request type", "sent input", "received output"};
+    vector<string> column_names = {"Time", "Request type", "Sent Contents", "HTTP Code"};
     html_logger.create_table_headings("background-color:lightgrey", column_names);
 
     // Check if the testing is complete, if so break out of while loop
