@@ -12,6 +12,7 @@ HTMLLogger::HTMLLogger(string output_file_path, string output_file_name, string 
     this->output_file_path = output_file_path;
     this->output_file_name = output_file_name;
     this->project_type = project_type;
+    this->row_num = 0;
 }
 
 void HTMLLogger::create_file(){
@@ -47,11 +48,18 @@ void HTMLLogger::create_file(){
 void HTMLLogger::create_table_headings(string style, const vector<string> &column_names){
     column_num = column_names.size();
 
+    // add table and style
     output_file << R"( <table> )" << endl;
     output_file << R"( <tr style=")" << style << R"(;">)" << endl;
+
+    // add iteration no. column
+    output_file << R"(<th>)" << "Test no." << R"(</th>)" << endl;
+
+    // iterate through column names and add
     for(int i = 0; i < column_num; i++){
         output_file << R"(<th>)" << column_names[i] << R"(</th>)" << endl;
     }
+
     output_file << R"(</tr>)" << endl;
 }
 
@@ -59,12 +67,18 @@ void HTMLLogger::create_table_headings(string style, const vector<string> &colum
 void HTMLLogger::add_row(const vector<string> &row){
     int row_size = row.size();
 
+    row_num += 1;
+
     if(row_size != column_num){
         cout << "@HTMLLogger: Invalid number of columns!" << endl;
         return;
     }
 
     output_file << "<tr>" << endl;
+
+    // add row index
+    output_file << "<th>" << row_num << "</th>" << endl;
+
     for(int i = 0; i < row_size; i++){
         output_file << "<th>" << row[i] << "</th>" << endl;
     }
@@ -75,12 +89,18 @@ void HTMLLogger::add_row(const vector<string> &row){
 void HTMLLogger::add_row(string style, const vector<string> &row){
     int row_size = row.size();
 
+    row_num += 1;
+
     if(row_size != column_num){
         cout << "@HTMLLogger: Invalid number of columns!";
         return;
     }
 
     output_file << "<tr>" << endl;
+
+    // add row index
+    output_file <<  R"(<th style=")" << style << R"(;">)" << row_num << "</th>" << endl;
+
     for(int i = 0; i < row_size; i++){
         output_file << R"(<th style=")" << style << R"(;">)" << row[i] << R"(</th>)" << endl;
     }

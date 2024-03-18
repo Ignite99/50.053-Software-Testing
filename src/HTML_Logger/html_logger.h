@@ -10,6 +10,7 @@ using namespace std;
 class HTMLLogger {
 private:
     int column_num;
+    int row_num;
     string headerFilePath = "./src/HTML_Logger/formats/header.html";
     string footerFilePath = "./src/HTML_Logger/formats/footer.html";
     string project_type;

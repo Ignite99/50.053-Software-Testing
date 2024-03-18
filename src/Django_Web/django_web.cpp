@@ -202,7 +202,7 @@ int Django_Test_Driver(int energy, string url, string request_type, string input
 
         accumulated_iterations++;
 
-        if (accumulated_iterations > 20) {
+        if (accumulated_iterations > 1000) {
             testing_incomplete = false;
         }
     }
