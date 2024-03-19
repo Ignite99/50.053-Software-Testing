@@ -112,12 +112,13 @@ json mutate_requests(string request_type, json data)
     // create random device generator
     random_device rd;
     mt19937 gen(rd());
-    uniform_int_distribution<> dis(1, 3);
+    uniform_int_distribution<> mutate_dis(1, 3);
+    uniform_int_distribution<> index_dis(0, data.size() - 1);
 
     if (request_type == "POST")
     {
         // randomize options
-        int random_number = dis(gen);
+        int random_number = mutate_dis(gen);
         if (random_number == 2 && data.empty())
         {
             // add a new JSON field
@@ -131,19 +132,19 @@ json mutate_requests(string request_type, json data)
             cout << "Mutation 1: Add new JSON field" << endl;
             new_key = generate_random_string(5);
             new_val = generate_random_string(5);
-            data[new_key] = new_val;
+            data.emplace(new_key, new_val);
             break;
         case 2:
             // 2. Remove existing JSON field
-            cout << "Mutation 2: Remove existing JSON field" << endl;
-            index = dis(gen);
+            index = index_dis(gen);
+            cout << "Mutation 2: Remove existing JSON field at index " << index << endl;
             it = next(data.begin(), index);
             data.erase(it);
             break;
         case 3:
             // 3. Keep all fields as it is but change value type
             cout << "Mutation 3: Change type of existing JSON field value" << endl;
-            index = dis(gen);
+            index = index_dis(gen);
             it = next(data.begin(), index);
             change_value_type(data, it.key());
             break;
@@ -157,8 +158,16 @@ json mutate_requests(string request_type, json data)
     return data;
 }
 
-int main()
+int main(int argc, char *argv[])
 {
+    int rounds = 10;
+
+    if (argc > 1)
+    {
+        rounds = stoi(argv[1]);
+    }
+    cout << "Number of mutation rounds: " << rounds << endl;
+
     string input_file_path = "../template_inputs/add_product.json";
     ifstream input_file(input_file_path);
     if (!input_file.is_open())
@@ -171,10 +180,12 @@ int main()
     input_file >> data;
     input_file.close();
 
-    json new_data = mutate_requests("POST", data);
-
-    cout << "JSON data: " << endl;
-    cout << new_data.dump(4) << endl;
+    json output_data = data;
+    for (int i = 0; i < rounds; i++)
+    {
+        output_data = mutate_requests("POST", output_data);
+        cout << output_data.dump(4) << endl;
+    }
 
     return 0;
 }
