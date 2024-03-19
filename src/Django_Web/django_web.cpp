@@ -190,6 +190,7 @@ int request_sender(FILE* output_file, CURL* curl, string request_type, string bo
 
     // log responses in html_logger
     log_responses(request_type, body, http_code);
+    return http_code;
 }
 
 void initialise_requests(string url) {
