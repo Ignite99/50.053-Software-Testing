@@ -4,7 +4,6 @@
 #include <string>
 #include <sstream>
 #include <vector>
-#include <algorithm>
 #include "html_logger.h"
 
 using namespace std;
@@ -13,42 +12,113 @@ HTMLLogger::HTMLLogger(string output_file_path, string output_file_name, string 
     this->output_file_path = output_file_path;
     this->output_file_name = output_file_name;
     this->project_type = project_type;
+    this->row_num = 0;
 }
 
 void HTMLLogger::create_file(){
-    output_file.open(output_file_name);
-    if(!output_file){
-        cout << "Creating file " << output_file_name << " ..." << endl;
-        output_file.open(output_file_name);
+    ifstream header_file;
+
+    header_file.open(headerFilePath);
+    if (!header_file){
+        cout << "@HTMLLogger: Header file not found!" << endl;
+        return;
     }
-    output_file << header;
-    if(project_type == "DJANGO"){
+
+    output_file.open(output_file_path + output_file_name);
+
+    // add opened header file into output file
+    string line;
+    while (std::getline(header_file, line)){
+        output_file << line << '\n';
+    }
+
+    // append fuzz target heading
+    if (project_type == "DJANGO"){
         output_file << "<p><b>Fuzz Target: </b>Django</p>";
     } else if (project_type == "COAP"){
         output_file << "<p><b>Fuzz Target: </b>CoAP</p>";
     } else if (project_type == "BLE"){
         output_file << "<p><b>Fuzz Target: </b>BLE</p>";
     }
+
     // TODO - display any other overall stats
-    output_file << table_columns;
 }
 
-void HTMLLogger::add_row(string time, string request_type, string input, string output){
-    output_file << "<tr><th>" << time << "</th>";
-    output_file << "<th>" << request_type << "</th>";
-    output_file << "<th>" << input << "</th>";
-    output_file << "<th>" << output << "</th></tr>";
+// create table headings and update column size
+void HTMLLogger::create_table_headings(string style, const vector<string> &column_names){
+    column_num = column_names.size();
+
+    // add table and style
+    output_file << R"( <table> )" << endl;
+    output_file << R"( <tr style=")" << style << R"(;">)" << endl;
+
+    // add iteration no. column
+    output_file << R"(<th>)" << "Test no." << R"(</th>)" << endl;
+
+    // iterate through column names and add
+    for(int i = 0; i < column_num; i++){
+        output_file << R"(<th>)" << column_names[i] << R"(</th>)" << endl;
+    }
+
+    output_file << R"(</tr>)" << endl;
+}
+
+// add_row without style
+void HTMLLogger::add_row(const vector<string> &row){
+    int row_size = row.size();
+
+    row_num += 1;
+
+    if(row_size != column_num){
+        cout << "@HTMLLogger: Invalid number of columns!" << endl;
+        return;
+    }
+
+    output_file << "<tr>" << endl;
+
+    // add row index
+    output_file << "<th>" << row_num << "</th>" << endl;
+
+    for(int i = 0; i < row_size; i++){
+        output_file << "<th>" << row[i] << "</th>" << endl;
+    }
+    output_file << "</tr>" << endl;
+}
+
+// add_row with style
+void HTMLLogger::add_row(string style, const vector<string> &row){
+    int row_size = row.size();
+
+    row_num += 1;
+
+    if(row_size != column_num){
+        cout << "@HTMLLogger: Invalid number of columns!";
+        return;
+    }
+
+    output_file << "<tr>" << endl;
+
+    // add row index
+    output_file <<  R"(<th style=")" << style << R"(;">)" << row_num << "</th>" << endl;
+
+    for(int i = 0; i < row_size; i++){
+        output_file << R"(<th style=")" << style << R"(;">)" << row[i] << R"(</th>)" << endl;
+    }
+    output_file << "</tr>" << endl;
 }
 
 void HTMLLogger::close_file(){
-    output_file << footer;
+    ifstream footer_file;
+
+    footer_file.open(footerFilePath);
+    if (!footer_file){
+        cout << "@HTMLLogger: Footer file not found!" << endl;
+        return;
+    }
+
+    string line;
+    while (getline(footer_file, line)){
+        output_file << line << '\n';
+    }
     output_file.close();
 }
-
-// int main(){
-//     HTMLLogger html_logger(".", "test.html", "DJANGO");
-//     html_logger.create_file();
-//     html_logger.add_row("01/02/2023, 12:00:05", "POST", "input:{wee:baguette}", "ERROR");
-//     html_logger.add_row("01/02/2023, 12:00:07", "POST", "input:{hi:hello}", "OK");
-//     html_logger.close_file();
-// }

@@ -7,6 +7,7 @@
 #include <list>
 #include <tuple>
 #include <nlohmann/json.hpp>
+#include <ctime>
 #include "../consts.h"
 #include "../fuzzer/fuzzer.h"
 #include "../HTML_Logger/html_logger.h"
@@ -16,7 +17,7 @@ using json = nlohmann::json;
 
 struct curl_slist *headers;
 
-HTMLLogger html_logger("./src/HTML_Logger/", "testing.html", "DJANGO");
+HTMLLogger html_logger("./src/fuzzing_responses/", "logs.html", "DJANGO");
 
 typedef struct json_seed {
     json data;
@@ -29,7 +30,6 @@ FILE* output_file;
 
 json parse_json(string input_file_path) {
     json json_data;
-
 
     ifstream f(input_file_path);
     json data = json::parse(f);
@@ -90,6 +90,32 @@ static size_t write_callback(void *ptr, size_t size, size_t nmemb, FILE *stream)
     size_t written = fwrite(ptr, size, nmemb, stream);
     fprintf(stream, "\n");
     return written;
+}
+
+// log responses in HTMLLogger
+void log_responses(string request_type, string body, int http_code){
+    // current date/time based on current system
+    time_t now = time(0);
+    
+    // convert now to string form
+    char* dt = ctime(&now);
+
+    vector<string> row = {dt, request_type, body, to_string(http_code)};
+
+    switch (http_code){
+        case 200:
+            html_logger.add_row("background-color:palegreen", row);
+            break;
+        case 201:
+            html_logger.add_row("background-color:palegreen", row);
+            break;
+        case 202:
+            html_logger.add_row("background-color:palegreen", row);
+            break;
+        default:
+            html_logger.add_row("background-color:tomato", row);
+            break;
+    }
 }
 
 int check_response(CURLcode res, long http_code, string request_type) {
@@ -153,9 +179,6 @@ int request_sender(FILE* output_file, CURL* curl, string request_type, string bo
         // Parse status code
         check_response(res, http_code, request_type);
 
-        // Add to logs
-        html_logger.add_row("16/03/2024", request_type, body, to_string(http_code));
-
         // Clean headers
         curl_slist_free_all(headers);
 
@@ -164,6 +187,9 @@ int request_sender(FILE* output_file, CURL* curl, string request_type, string bo
         cerr << "Invalid request type: " << request_type << endl;
         return http_code;
     }
+
+    // log responses in html_logger
+    log_responses(request_type, body, http_code);
 }
 
 void initialise_requests(string url) {
@@ -196,6 +222,8 @@ int Django_Test_Driver(int energy, string url, string request_type, string input
 
     // create html logger file
     html_logger.create_file();
+    vector<string> column_names = {"Time", "Request type", "Sent Contents", "HTTP Code"};
+    html_logger.create_table_headings("background-color:lightgrey", column_names);
 
     // Check if the testing is complete, if so break out of while loop
     testing_incomplete = true;
