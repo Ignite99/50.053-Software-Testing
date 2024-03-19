@@ -38,17 +38,22 @@ json parse_json(string input_file_path) {
 }
 
 string get_last_line() {
-    // TODO: remove hardcode for the filename
-    string filename = "./src/fuzzing_responses/response.txt";
+    string filename;
+    string lastLine;
     ifstream fin;
+    char ch;
+
+    // TODO: remove hardcode for the filename
+    filename = "./src/fuzzing_responses/response.txt";
 
     fin.open(filename);
     if(fin.is_open()) {
+        // Start reading from end of file
         fin.seekg(-2,ios_base::end);
 
         bool keepLooping = true;
         while(keepLooping) {
-            char ch;
+            // Read one char from file
             fin.get(ch);
 
             if((int)fin.tellg() <= 1) {
@@ -62,8 +67,6 @@ string get_last_line() {
                 fin.seekg(-2,ios_base::cur);
             }
         }
-
-        string lastLine;
         getline(fin,lastLine);
 
         fin.close();
@@ -92,49 +95,40 @@ static size_t write_callback(void *ptr, size_t size, size_t nmemb, FILE *stream)
     return written;
 }
 
-// log responses in HTMLLogger
-void log_responses(string request_type, string body, int http_code){
+int check_response(CURLcode res, long http_code, string request_type, string body) {
+    vector<string> row;
+    time_t now;
+    char* dt;
+
     // current date/time based on current system
-    time_t now = time(0);
+    now = time(0);
     
     // convert now to string form
-    char* dt = ctime(&now);
+    dt = ctime(&now);
 
-    vector<string> row = {dt, request_type, body, to_string(http_code)};
+    row = {dt, request_type, body, to_string(http_code)};
 
-    switch (http_code){
-        case 200:
-            html_logger.add_row("background-color:palegreen", row);
-            break;
-        case 201:
-            html_logger.add_row("background-color:palegreen", row);
-            break;
-        case 202:
-            html_logger.add_row("background-color:palegreen", row);
-            break;
-        default:
-            html_logger.add_row("background-color:tomato", row);
-            break;
-    }
-}
-
-int check_response(CURLcode res, long http_code, string request_type) {
+    // log responses in html_logger after printing out status message
     switch(http_code) {
         case 200:
             cout << request_type << " request suceeded!" << endl;
             cout << "HTTP Status: " << http_code << ", " << HTTP_STATUS_MESSAGES.at(http_code)<< endl;
+            html_logger.add_row("background-color:palegreen", row);
             return 0;
         case 201:
             cout << request_type << " create request suceeded!" << endl;
             cout << "HTTP Status: " << http_code << ", " << HTTP_STATUS_MESSAGES.at(http_code)<< endl;
+            html_logger.add_row("background-color:palegreen", row);
             return 0;
         case 202:
             cout << request_type << " accept request suceeded!" << endl;
             cout << "HTTP Status: " << http_code << ", " << HTTP_STATUS_MESSAGES.at(http_code)<< endl;
+            html_logger.add_row("background-color:palegreen", row);
             return 0;
         default:
             cout << request_type << " request failed!" << endl;
             cerr << "HTTP status code: " << http_code << ", " << HTTP_STATUS_MESSAGES.at(http_code) << endl;
+            html_logger.add_row("background-color:tomato", row);
             return 1;
     }
 
@@ -159,7 +153,7 @@ int request_sender(FILE* output_file, CURL* curl, string request_type, string bo
     if (request_type == "GET") {
         res = curl_easy_perform(curl);
         curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
-        check_response(res, http_code, request_type);
+        check_response(res, http_code, request_type, body);
         return http_code;
 
     } else if (request_type == "POST") {
@@ -177,7 +171,7 @@ int request_sender(FILE* output_file, CURL* curl, string request_type, string bo
         curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
 
         // Parse status code
-        check_response(res, http_code, request_type);
+        check_response(res, http_code, request_type, body);
 
         // Clean headers
         curl_slist_free_all(headers);
@@ -187,9 +181,6 @@ int request_sender(FILE* output_file, CURL* curl, string request_type, string bo
         cerr << "Invalid request type: " << request_type << endl;
         return http_code;
     }
-
-    // log responses in html_logger
-    log_responses(request_type, body, http_code);
     return http_code;
 }
 
@@ -262,6 +253,7 @@ int Django_Test_Driver(int energy, string url, string request_type, string input
             long http_code = request_sender(output_file, curl, request_type, json_body);
 
             // Check for interesting inputs
+            // TODO: add output file path here too.
             string res_string = get_last_line();
             if (!is_interesting(res_string, http_code)){
                 // Not interesting so remove new mutated input
