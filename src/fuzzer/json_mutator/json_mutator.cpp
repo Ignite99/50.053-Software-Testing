@@ -1,5 +1,5 @@
 #include <curl/curl.h>
-#include "nlohmann/json.hpp"
+#include <nlohmann/json.hpp>
 
 #include <iostream>
 #include <fstream>
@@ -7,23 +7,34 @@
 #include <sstream>
 #include <random>
 
-using namespace std; // causes ambiguity for cout
+using namespace std;
 using json = nlohmann::json;
 
-/* ============================================================================ */
+// constants
+const int VALUE_TYPES = 4;  // number of valid value types considered
+const int MUTATION_NUM = 4; // number of mutation types
+const string charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+
+// random distributions
+uniform_int_distribution<> string_length_dist(0, 10);
+uniform_int_distribution<> int_dist(numeric_limits<int>::min(), numeric_limits<int>::max());
+uniform_real_distribution<> float_dist(numeric_limits<float>::min(), numeric_limits<float>::max());
+uniform_int_distribution<> bool_dist(numeric_limits<bool>::min(), numeric_limits<bool>::max());
+uniform_int_distribution<> mutate_dist(1, MUTATION_NUM);
+uniform_int_distribution<> value_types_dist(1, VALUE_TYPES);
+uniform_int_distribution<> char_dist(0, charset.length() - 1);
+
 /* ============================= HELPER FUNCTIONS ============================= */
-/* ============================================================================ */
+// generates a random string of size "length"
 string generate_random_string(int length)
 {
-    const string charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     random_device rd;
     mt19937 gen(rd());
-    uniform_int_distribution<> dis(0, charset.length() - 1);
 
     string random_string;
     for (int i = 0; i < length; ++i)
     {
-        random_string += charset[dis(gen)];
+        random_string += charset[char_dist(gen)];
     }
     return random_string;
 }
@@ -37,17 +48,56 @@ bool string_convertible_to_int(const string &str)
     return !ss.fail() && ss.eof();
 }
 
-// return either true or false
-bool choose_boolean_output()
+/* ============================= MUTATOR FUNCTIONS ============================= */
+// Randomize current value without changing its type
+void randomize_value(json &data, string key)
 {
+    int num_value;
+    string string_value;
+    float float_value;
+    bool bool_value;
+
     random_device rd;
     mt19937 gen(rd());
-    uniform_int_distribution<> dis(0, 1);
-    int random_number = dis(gen);
-    if (random_number)
-        return false;
+
+    auto value = data[key];
+
+    if (value.is_number())
+    {
+        num_value = int_dist(gen);
+        data[key] = num_value;
+    }
+    else if (value.is_string())
+    {
+        string_value = generate_random_string(string_length_dist(gen));
+        data[key] = string_value;
+    }
+    else if (value.is_number_float())
+    {
+        float_value = float_dist(gen);
+        data[key] = float_value;
+    }
+    else if (value.is_boolean())
+    {
+        bool_value = bool_dist(gen);
+        data[key] = bool_value;
+    }
+    else if (value.is_null())
+    {
+        // TODO: find ways to fuzz NULL values
+        num_value = int_dist(gen);
+        data[key] = num_value;
+    }
+    else if (value.is_array())
+    {
+        // TODO: find ways to fuzz arrays
+        num_value = int_dist(gen);
+        data[key] = num_value;
+    }
     else
-        return true;
+    {
+        cout << "value type is not covered" << endl;
+    }
 }
 
 // changes one value type to another type
@@ -56,67 +106,63 @@ void change_value_type(json &data, const string key)
     // random device generators
     random_device rd;
     mt19937 gen(rd());
-    uniform_int_distribution<> dis(0, 1);
-    int random_number;
+    int rand;
 
     // check if key exists
     if (data.find(key) != data.end())
     {
         auto value = data[key];
         json::value_t val_type = data[key].type();
-        cout << "Update at key: " << key << endl;
 
         // 1. UNSIGNED INT or INTEGER
         if (val_type == json::value_t::number_unsigned || val_type == json::value_t::number_integer)
         {
-            cout << "Value is unsigned integer" << endl;
             unsigned int num_val;
-            // convert INT to FLOAT, STRING, BOOL
-            random_number = dis(gen);
+            rand = bool_dist(gen);
             if (val_type == json::value_t::number_unsigned)
                 num_val = value.get<json::number_unsigned_t>();
             else
                 num_val = value.get<json::number_integer_t>();
-            if (random_number == 0)
+            if (rand)
             {
+                // convert INT to FLOAT
                 float float_res = static_cast<float>(num_val);
-                cout << "Convert to float" << endl;
                 data[key] = float_res;
             }
-            else if (random_number == 1)
+            else
             {
+                // convert INT to STRING
                 string string_res = to_string(num_val);
-                cout << "Convert to string" << endl;
                 data[key] = string_res;
             }
         }
         // 2. FLOAT
         else if (val_type == json::value_t::number_float)
         {
-            cout << "Value is float" << endl;
             // convert FLOAT to INT
-            cout << "Convert to int" << endl;
             data[key] = static_cast<int>(value);
         }
         // 3. STRING
         else if (val_type == json::value_t::string)
         {
-            cout << "Value is string" << endl;
             // convert STRING to INT, BOOL
             json::string_t string_val = value.get<json::string_t>();
             if (string_convertible_to_int(value))
             {
+                // convert STRING to INT
                 int int_val = stoi(string_val);
-                cout << "Convert to int" << endl;
                 data[key] = int_val;
             }
-            // TODO: update strings that have mix of characters and numbers
+            else
+            {
+                // currently just randomize strings containing chars and numbers
+                randomize_value(data, key);
+            }
         }
         // 4. BOOLEAN
         else if (val_type == json::value_t::boolean)
         {
-            cout << "Value is boolean" << endl;
-            cout << "Convert to string" << endl;
+            // convert BOOLEAN to STRING
             if (data[key])
                 data[key] = "true";
             else
@@ -129,73 +175,76 @@ void change_value_type(json &data, const string key)
     }
 }
 
-/* ================================================================================= */
-/* ============================= MAIN MUTATOR FUNCTION ============================= */
-/* ================================================================================= */
-json mutate_requests(string request_type, json data)
+/* ============================= JSON MUTATOR FUNCTION ============================= */
+json mutate_requests(string request_type, json &data)
 {
     // initialize variables for switch block
-    string new_key;
-    string new_val;
+    string new_key, new_val;
     int index;
     auto it = data.begin();
-    float random_float;
+    float float_val;
 
     // create random device generator
     random_device rd;
     mt19937 gen(rd());
-    uniform_int_distribution<> mutate_dis(1, 3);     // 3 different mutations
-    uniform_int_distribution<> random_gen_dis(1, 4); // 4 different value types
-    uniform_int_distribution<> index_dis(0, data.size() - 1);
-    uniform_int_distribution<> num_dis(0, 100);
+    // distribution for random JSON field index
+    uniform_int_distribution<> index_dist(0, data.size() - 1);
 
     if (request_type == "POST")
     {
-        // randomize options
-        int random_number = mutate_dis(gen);
-        if (random_number == 2 && data.empty())
+        int rand = mutate_dist(gen);
+        if (data.empty())
         {
-            // add a new JSON field
-            random_number = 1;
+            rand = 1; // force to add a new field
         }
 
-        switch (random_number)
+        switch (rand)
         {
+        // 1. Add new JSON field
         case 1:
-            // 1. Add new JSON field
             cout << "Mutation 1: Add new JSON field" << endl;
             new_key = generate_random_string(5);
-            // randomize values generated
-            random_number = random_gen_dis(gen);
-            switch (random_number)
+            rand = value_types_dist(gen);
+            switch (rand)
             {
             case 1:
                 new_val = generate_random_string(5);
                 break;
             case 2:
-                new_val = num_dis(gen);
+                new_val = to_string(int_dist(gen));
                 break;
             case 3:
-                random_float = num_dis(gen);
-                new_val = random_float;
+                new_val = to_string(float_dist(gen));
+                break;
             case 4:
-                new_val = choose_boolean_output();
+                new_val = to_string(bool_dist(gen));
+                break;
             }
             data.emplace(new_key, new_val);
             break;
+
+        // 2. Remove existing JSON field
         case 2:
-            // 2. Remove existing JSON field
-            index = index_dis(gen);
+            index = index_dist(gen);
             cout << "Mutation 2: Remove existing JSON field at index " << index << endl;
             it = next(data.begin(), index);
             data.erase(it);
             break;
+
+        // 3. Keep all fields as it is but change value type
         case 3:
-            // 3. Keep all fields as it is but change value type
             cout << "Mutation 3: Change type of existing JSON field value" << endl;
-            index = index_dis(gen);
+            index = index_dist(gen);
             it = next(data.begin(), index);
             change_value_type(data, it.key());
+            break;
+
+        // 4. Randomize current JSON value
+        case 4:
+            index = index_dist(gen);
+            it = next(data.begin(), index);
+            cout << "Mutation 4: Randomize value at index " << index << endl;
+            randomize_value(data, it.key());
             break;
         }
     }
@@ -207,6 +256,8 @@ json mutate_requests(string request_type, json data)
     return data;
 }
 
+/* MAIN FUNCTION for TESTING */
+/* UNCOMMENT FOR TESTING, as MAIN here clashes with main.cpp */
 int main(int argc, char *argv[])
 {
     // command line arguments
@@ -218,7 +269,7 @@ int main(int argc, char *argv[])
     cout << "Number of mutation rounds: " << rounds << endl;
 
     // JSON input file
-    string input_file_path = "../template_inputs/add_product.json";
+    string input_file_path = "../src/Django_Web/template_inputs/add_product.json";
     ifstream input_file(input_file_path);
     if (!input_file.is_open())
     {
@@ -230,11 +281,13 @@ int main(int argc, char *argv[])
     input_file.close();
 
     // loop through "rounds" and mutate in each iteration
-    json output_data = data;
     for (int i = 0; i < rounds; i++)
     {
-        output_data = mutate_requests("POST", output_data);
-        cout << output_data.dump(4) << endl;
+        data = mutate_requests("POST", data);
+        if (!data.empty())
+            cout << data.dump(4) << endl;
+        else
+            cout << "Empty data: {}" << endl;
     }
 
     return 0;
