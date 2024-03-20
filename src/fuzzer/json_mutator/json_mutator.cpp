@@ -202,7 +202,6 @@ json mutate_requests(string request_type, json &data)
         {
         // 1. Add new JSON field
         case 1:
-            cout << "Mutation 1: Add new JSON field" << endl;
             new_key = generate_random_string(5);
             rand = value_types_dist(gen);
             switch (rand)
@@ -226,14 +225,12 @@ json mutate_requests(string request_type, json &data)
         // 2. Remove existing JSON field
         case 2:
             index = index_dist(gen);
-            cout << "Mutation 2: Remove existing JSON field at index " << index << endl;
             it = next(data.begin(), index);
             data.erase(it);
             break;
 
         // 3. Keep all fields as it is but change value type
         case 3:
-            cout << "Mutation 3: Change type of existing JSON field value" << endl;
             index = index_dist(gen);
             it = next(data.begin(), index);
             change_value_type(data, it.key());
@@ -243,7 +240,6 @@ json mutate_requests(string request_type, json &data)
         case 4:
             index = index_dist(gen);
             it = next(data.begin(), index);
-            cout << "Mutation 4: Randomize value at index " << index << endl;
             randomize_value(data, it.key());
             break;
         }
@@ -254,41 +250,4 @@ json mutate_requests(string request_type, json &data)
     }
 
     return data;
-}
-
-/* MAIN FUNCTION for TESTING */
-/* UNCOMMENT FOR TESTING, as MAIN here clashes with main.cpp */
-int main(int argc, char *argv[])
-{
-    // command line arguments
-    int rounds = 10;
-    if (argc > 1)
-    {
-        rounds = stoi(argv[1]);
-    }
-    cout << "Number of mutation rounds: " << rounds << endl;
-
-    // JSON input file
-    string input_file_path = "../src/Django_Web/template_inputs/add_product.json";
-    ifstream input_file(input_file_path);
-    if (!input_file.is_open())
-    {
-        cerr << "Error: Could not open file '" << input_file_path << "'." << endl;
-        return 1;
-    }
-    json data;
-    input_file >> data;
-    input_file.close();
-
-    // loop through "rounds" and mutate in each iteration
-    for (int i = 0; i < rounds; i++)
-    {
-        data = mutate_requests("POST", data);
-        if (!data.empty())
-            cout << data.dump(4) << endl;
-        else
-            cout << "Empty data: {}" << endl;
-    }
-
-    return 0;
 }
