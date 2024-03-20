@@ -131,7 +131,7 @@ int main(int argc, char* argv[]) {
 
     } else if (project_type == "DJANGO") {
         std::cout << "\n[DJANGO] Fuzzer has initiated call to DJANGO Web Application!" << endl;
-        Django_Test_Driver(1, url, request_type, input_file_path);
+        Django_Test_Driver(1, url, request_type, input_file_path, output_file_path);
 
     } else if (project_type == "BLE") {
         std::cout << "\n[BLE] Fuzzer has initiated call to BLE_Zephyr!" << endl;
