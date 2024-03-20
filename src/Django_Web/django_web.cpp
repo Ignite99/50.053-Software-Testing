@@ -40,15 +40,18 @@ json parse_json(string input_file_path)
     return data;
 }
 
-string get_last_line()
-{
+string get_last_line(string output_file_path) {
     string filename;
     string lastLine;
     ifstream fin;
     char ch;
 
-    // TODO: remove hardcode for the filename
-    filename = "./src/fuzzing_responses/response.txt";
+    // Default filename if output_file_path is any of the options below
+    if (filename.empty() || filename == "./" || filename == "") {
+        filename = "./src/fuzzing_responses/response.txt";
+    } else {
+        filename = output_file_path;
+    }
 
     fin.open(filename);
     if (fin.is_open())
@@ -231,8 +234,7 @@ void initialise_requests(string url)
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
 }
 
-int Django_Test_Driver(int energy, string url, string request_type, string input_file_path)
-{
+int Django_Test_Driver(int energy, string url, string request_type, string input_file_path, string output_file_path) {
     int accumulated_iterations;
     bool testing_incomplete;
     list<json_seed> input_q;
@@ -283,9 +285,8 @@ int Django_Test_Driver(int energy, string url, string request_type, string input
 
             // Check for interesting inputs
             // TODO: add output file path here too.
-            string res_string = get_last_line();
-            if (!is_interesting(res_string, http_code))
-            {
+            string res_string = get_last_line(output_file_path);
+            if (!is_interesting(res_string, http_code)){
                 // Not interesting so remove new mutated input
                 input_q.pop_back();
             }

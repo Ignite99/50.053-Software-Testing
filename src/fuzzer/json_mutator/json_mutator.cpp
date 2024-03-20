@@ -182,7 +182,7 @@ json mutate_requests(string request_type, json &data)
     string new_key, new_val;
     int index;
     auto it = data.begin();
-    float float_val;
+    // float float_val;
 
     // create random device generator
     random_device rd;
