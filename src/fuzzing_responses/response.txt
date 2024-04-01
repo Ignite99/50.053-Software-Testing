@@ -1,3 +1,0 @@
-{"detail": "UNIQUE constraint failed: home_product.id", "success": false}
-{"id": 438, "message": "Record Created.", "success": true}
-{"detail": "list index out of range", "success": false}

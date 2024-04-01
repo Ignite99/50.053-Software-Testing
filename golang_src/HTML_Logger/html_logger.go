@@ -31,7 +31,10 @@ func NewHTMLLogger(outputFilePath string, outputFileName string, projectType str
 	}
 }
 
-func (logger *HTMLLogger) CreateFile(headerFilePath string) error {
+func (logger *HTMLLogger) CreateFile() error {
+
+	headerFilePath := logger.headerFilePath
+
 	headerFile, err := os.Open(headerFilePath)
 	if err != nil {
 		return fmt.Errorf("@HTMLLogger: Header file not found! %v", err)

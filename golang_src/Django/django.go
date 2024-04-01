@@ -132,6 +132,37 @@ func requestSender(outputFile *os.File, requestType string, body string, url str
 	return httpCode, nil
 }
 
+// func htmlFileInit() {
+// 	var column_names []string
+
+// 	outputFilePath := "./fuzzing_responses/"
+// 	outputFileName := "logs.html"
+// 	footerFilePath := "./HTML_Logger/formats/footer.html"
+// 	projectType := "DJANGO"
+
+// 	outputFile, err := os.Create(filepath.Join(outputFilePath, outputFileName))
+// 	if err != nil {
+// 		log.Fatalf("failed to create output file: %v", err)
+// 	}
+// 	defer outputFile.Close()
+
+// 	// Call constructor
+// 	htmlLogger := logger.NewHTMLLogger(outputFilePath, outputFileName, projectType, outputFile)
+// 	htmlLogger.CreateFile()
+
+// 	// Initialise headings
+// 	column_names = []string{"Time", "Request type", "Sent Contents", "HTTP Code"}
+// 	htmlLogger.CreateTableHeadings("background-color:lightgrey", column_names)
+
+// 	htmlLogger.AddRowWithStyle("background-color:palegreen", []string{"ayagayaygyagsgy", "ayagayaygyagsgy", "ayagayaygyagsgy", "ayagayaygyagsgy"})
+
+// 	if err := htmlLogger.CloseFile(footerFilePath); err != nil {
+// 		log.Fatalf("failed to close output file: %v", err)
+// 	}
+
+// 	fmt.Println("HTML logger created and used successfully.")
+// }
+
 func Django_Test_Driver(energy int, url string, request_type string, input_file_path string, output_file_path string) {
 	var accumulated_iterations int
 	var testing_incomplete bool
@@ -141,6 +172,7 @@ func Django_Test_Driver(energy int, url string, request_type string, input_file_
 	var responseFile *os.File
 
 	// Create html logger method
+	// htmlFileInit()
 
 	// Set default filename if outputFilePath is empty
 	if output_file_path == "" || output_file_path == "./" {
