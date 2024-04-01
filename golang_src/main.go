@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"github.com/50.053-Software-Testing/Django"
 )
 
 var (
@@ -23,6 +25,8 @@ var (
 
 func main() {
 	var projectType string
+	var inputFilePath string
+	var outputFilePath string
 	var url string
 	var requestType string
 
@@ -37,6 +41,8 @@ func main() {
 		projectType = os.Args[1]
 		url = os.Args[2]
 		requestType = strings.ToUpper(os.Args[3])
+		inputFilePath = os.Args[4]
+		outputFilePath = os.Args[5]
 
 		if !validProjectTypes[projectType] {
 			fmt.Println("Invalid project type. Please enter COAP/DJANGO/BLE.")
@@ -98,7 +104,6 @@ func main() {
 			fmt.Println("Invalid request type. Please enter GET/POST/PUT/HEAD/DELETE.")
 		}
 
-		var inputFilePath string
 		for {
 			fmt.Println("\nWhat is your seed input's file path?")
 			_, err = fmt.Scanln(&inputFilePath)
@@ -113,7 +118,6 @@ func main() {
 			}
 		}
 
-		var outputFilePath string
 		for {
 			fmt.Println("\nWhat is your output file path?")
 			_, err = fmt.Scanln(&outputFilePath)
@@ -134,7 +138,7 @@ func main() {
 		// CoAP_Handler()
 	} else if projectType == "DJANGO" {
 		fmt.Println("[DJANGO] Fuzzer has initiated call to DJANGO Web Application!")
-		// Django_Test_Driver(1, url, request_type, input_file_path, output_file_path)
+		Django.Django_Test_Driver(1, url, requestType, inputFilePath, outputFilePath)
 
 	} else if projectType == "BLE" {
 		fmt.Println("[BLE] Fuzzer has initiated call to BLE_Zephyr!")
