@@ -67,26 +67,22 @@ func checkResponse(httpCode int, requestType string, body string, file *os.File,
 	// Log responses in HTML logger after printing out status message
 	switch httpCode {
 	case 200:
-		fmt.Printf("%s request succeeded!\n", requestType)
-		fmt.Printf("HTTP Status: %d\n", httpCode)
+		fmt.Printf("%s request succeeded! HTTP Status: %d\n", requestType, httpCode)
 		fmt.Printf("Row: %s\n", row)
 		// htmlLogger.addRow("background-color:palegreen", row)
 		return
 	case 201:
-		fmt.Printf("%s create request succeeded!\n", requestType)
-		fmt.Printf("HTTP Status: %d\n", httpCode)
+		fmt.Printf("%s request succeeded! HTTP Status: %d\n", requestType, httpCode)
 		fmt.Printf("Row: %s\n", row)
 		// htmlLogger.addRow("background-color:palegreen", row)
 		return
 	case 202:
-		fmt.Printf("%s accept request succeeded!\n", requestType)
-		fmt.Printf("HTTP Status: %d\n", httpCode)
+		fmt.Printf("%s request succeeded! HTTP Status: %d\n", requestType, httpCode)
 		fmt.Printf("Row: %s\n", row)
 		// htmlLogger.addRow("background-color:palegreen", row)
 		return
 	default:
-		fmt.Printf("%s request failed!\n", requestType)
-		fmt.Printf("HTTP Status code: %d\n", httpCode)
+		fmt.Printf("%s request succeeded! HTTP Status: %d\n", requestType, httpCode)
 		fmt.Printf("Row: %s\n", row)
 		// htmlLogger.addRow("background-color:tomato", row)
 
