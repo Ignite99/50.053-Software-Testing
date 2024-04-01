@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"strings"
@@ -19,6 +19,15 @@ type json_seed struct {
 	energy        int
 }
 
+func responseFileInit(path string) (*os.File, error) {
+	outputFile, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		return nil, fmt.Errorf("error opening output file: %v", err)
+	}
+
+	return outputFile, nil
+}
+
 func isInteresting(line string, httpCode int) bool {
 	if strings.Contains(line, "\"success\": false") || httpCode != 200 {
 		return true
@@ -27,16 +36,8 @@ func isInteresting(line string, httpCode int) bool {
 	return false
 }
 
-func getLastLine(outputFilePath string) (string, error) {
-	var filename string
+func getLastLine(filename string) (string, error) {
 	var lastLine string
-
-	// Set default filename if outputFilePath is empty
-	if outputFilePath == "" || outputFilePath == "./" {
-		filename = "./fuzzing_responses/response.txt"
-	} else {
-		filename = outputFilePath
-	}
 
 	file, err := os.Open(filename)
 	if err != nil {
@@ -56,7 +57,7 @@ func getLastLine(outputFilePath string) (string, error) {
 	return lastLine, nil
 }
 
-func checkResponse(httpCode int, requestType string, body string) int {
+func checkResponse(httpCode int, requestType string, body string, file *os.File, resp *http.Response) {
 	var row []string
 
 	now := time.Now()
@@ -70,29 +71,38 @@ func checkResponse(httpCode int, requestType string, body string) int {
 		fmt.Printf("HTTP Status: %d\n", httpCode)
 		fmt.Printf("Row: %s\n", row)
 		// htmlLogger.addRow("background-color:palegreen", row)
-		return 0
+		return
 	case 201:
 		fmt.Printf("%s create request succeeded!\n", requestType)
 		fmt.Printf("HTTP Status: %d\n", httpCode)
 		fmt.Printf("Row: %s\n", row)
 		// htmlLogger.addRow("background-color:palegreen", row)
-		return 0
+		return
 	case 202:
 		fmt.Printf("%s accept request succeeded!\n", requestType)
 		fmt.Printf("HTTP Status: %d\n", httpCode)
 		fmt.Printf("Row: %s\n", row)
 		// htmlLogger.addRow("background-color:palegreen", row)
-		return 0
+		return
 	default:
 		fmt.Printf("%s request failed!\n", requestType)
 		fmt.Printf("HTTP Status code: %d\n", httpCode)
 		fmt.Printf("Row: %s\n", row)
 		// htmlLogger.addRow("background-color:tomato", row)
-		return 0
+
+		// Write the response body to the file for fucked up responses
+		_, _ = file.WriteString("\n")
+		_, err := io.Copy(file, resp.Body)
+		if err != nil {
+			fmt.Printf("error writing to output file: %v\n", err)
+			return
+		}
+
+		return
 	}
 }
 
-func requestSender(outputFilePath string, requestType string, body string, url string) (int, error) {
+func requestSender(outputFile *os.File, requestType string, body string, url string) (int, error) {
 	var httpCode int
 	var req *http.Request
 	var err error
@@ -121,11 +131,7 @@ func requestSender(outputFilePath string, requestType string, body string, url s
 
 	// Get the http request shit
 	httpCode = resp.StatusCode
-	checkResponse(httpCode, requestType, body)
-
-	// idk if this is a good idea
-	resBody, _ := ioutil.ReadAll(resp.Body)
-	fmt.Println(string(resBody))
+	checkResponse(httpCode, requestType, body, outputFile, resp)
 
 	return httpCode, nil
 }
@@ -135,8 +141,23 @@ func Django_Test_Driver(energy int, url string, request_type string, input_file_
 	var testing_incomplete bool
 	var data map[string]interface{}
 	var inputQ []json_seed
+	var filename string
+	var responseFile *os.File
 
 	// Create html logger method
+
+	// Set default filename if outputFilePath is empty
+	if output_file_path == "" || output_file_path == "./" {
+		filename = "./fuzzing_responses/response.txt"
+	} else {
+		filename = output_file_path
+	}
+
+	responseFile, err := responseFileInit(output_file_path)
+	if err != nil {
+		fmt.Println("die from no response file", err)
+		return
+	}
 
 	testing_incomplete = true
 	accumulated_iterations = 0
@@ -182,13 +203,13 @@ func Django_Test_Driver(energy int, url string, request_type string, input_file_
 			}
 			jsonString := string(jsonData)
 
-			httpCode, err := requestSender(output_file_path, request_type, jsonString, url)
+			httpCode, err := requestSender(responseFile, request_type, jsonString, url)
 			if err != nil {
 				fmt.Println("FUCK IT WE BALLING IN REQUEST SENDER AND DIE", err)
 				break
 			}
 
-			resString, err := getLastLine(output_file_path)
+			resString, err := getLastLine(filename)
 			if err != nil {
 				fmt.Println("FUCK IT WE BALLING IN LAST LINE AND DIE", err)
 				break
@@ -207,5 +228,7 @@ func Django_Test_Driver(energy int, url string, request_type string, input_file_
 			break
 		}
 	}
+
+	responseFile.Close()
 
 }
