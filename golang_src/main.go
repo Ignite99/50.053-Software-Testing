@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	coap "github.com/50.053-Software-Testing/CoAP"
 	"github.com/50.053-Software-Testing/Django"
 )
 
@@ -135,6 +136,7 @@ func main() {
 
 	if projectType == "COAP" {
 		fmt.Println("[COAP] Fuzzer has initiated call to COAP!")
+		coap.CoAPTestDriver()
 		// CoAP_Handler()
 	} else if projectType == "DJANGO" {
 		fmt.Println("[DJANGO] Fuzzer has initiated call to DJANGO Web Application!")
