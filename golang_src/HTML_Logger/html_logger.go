@@ -1,6 +1,7 @@
 package html_logger
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -22,8 +23,8 @@ func NewHTMLLogger(outputFilePath string, outputFileName string, projectType str
 	return &HTMLLogger{
 		rowNum:         0,
 		columnNum:      0,
-		headerFilePath: "./src/HTML_Logger/formats/header.html",
-		footerFilePath: "./src/HTML_Logger/formats/footer.html",
+		headerFilePath: "./HTML_Logger/formats/header.html",
+		footerFilePath: "./HTML_Logger/formats/footer.html",
 		projectType:    projectType,
 		outputFilePath: outputFilePath,
 		outputFileName: outputFileName,
@@ -32,28 +33,28 @@ func NewHTMLLogger(outputFilePath string, outputFileName string, projectType str
 }
 
 func (logger *HTMLLogger) CreateFile() error {
-
 	headerFilePath := logger.headerFilePath
+
+	fmt.Println("Header file path " + headerFilePath)
 
 	headerFile, err := os.Open(headerFilePath)
 	if err != nil {
-		return fmt.Errorf("@HTMLLogger: Header file not found! %v", err)
+		return errors.New("[ERROR] header file path failed to open")
 	}
-	defer headerFile.Close()
 
 	outputFile, err := os.Create(logger.outputFilePath + logger.outputFileName)
 	if err != nil {
-		return fmt.Errorf("error creating output file: %v", err)
+		return errors.New("[ERROR] creating output file failed")
 	}
 	logger.outputFile = outputFile
-	defer outputFile.Close()
 
 	headerBytes, err := ioutil.ReadAll(headerFile)
 	if err != nil {
-		return fmt.Errorf("error reading header file: %v", err)
+		return errors.New("[ERROR] reading header file failed")
 	}
+
 	if _, err := outputFile.Write(headerBytes); err != nil {
-		return fmt.Errorf("error writing header content to output file: %v", err)
+		return errors.New("[ERROR] writing header content to output file")
 	}
 
 	switch logger.projectType {

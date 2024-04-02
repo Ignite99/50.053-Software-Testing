@@ -5,13 +5,18 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
+	logger "github.com/50.053-Software-Testing/HTML_Logger"
 	fuzzer "github.com/50.053-Software-Testing/fuzzer/json_mutator"
 )
+
+var loggerInstance *logger.HTMLLogger
 
 type json_seed struct {
 	data          map[string]interface{}
@@ -69,22 +74,22 @@ func checkResponse(httpCode int, requestType string, body string, file *os.File,
 	case 200:
 		fmt.Printf("%s request succeeded! HTTP Status: %d\n", requestType, httpCode)
 		fmt.Printf("Row: %s\n", row)
-		// htmlLogger.addRow("background-color:palegreen", row)
+		loggerInstance.AddRowWithStyle("background-color:palegreen", row)
 		return
 	case 201:
 		fmt.Printf("%s request succeeded! HTTP Status: %d\n", requestType, httpCode)
 		fmt.Printf("Row: %s\n", row)
-		// htmlLogger.addRow("background-color:palegreen", row)
+		loggerInstance.AddRowWithStyle("background-color:palegreen", row)
 		return
 	case 202:
 		fmt.Printf("%s request succeeded! HTTP Status: %d\n", requestType, httpCode)
 		fmt.Printf("Row: %s\n", row)
-		// htmlLogger.addRow("background-color:palegreen", row)
+		loggerInstance.AddRowWithStyle("background-color:palegreen", row)
 		return
 	default:
 		fmt.Printf("%s request succeeded! HTTP Status: %d\n", requestType, httpCode)
 		fmt.Printf("Row: %s\n", row)
-		// htmlLogger.addRow("background-color:tomato", row)
+		loggerInstance.AddRowWithStyle("background-color:tomato", row)
 
 		// Write the response body to the file for fucked up responses
 		_, _ = file.WriteString("\n")
@@ -132,36 +137,31 @@ func requestSender(outputFile *os.File, requestType string, body string, url str
 	return httpCode, nil
 }
 
-// func htmlFileInit() {
-// 	var column_names []string
+func htmlFileInit() {
+	var column_names []string
 
-// 	outputFilePath := "./fuzzing_responses/"
-// 	outputFileName := "logs.html"
-// 	footerFilePath := "./HTML_Logger/formats/footer.html"
-// 	projectType := "DJANGO"
+	outputFilePath := "./fuzzing_responses/"
+	outputFileName := "logs.html"
+	projectType := "DJANGO"
 
-// 	outputFile, err := os.Create(filepath.Join(outputFilePath, outputFileName))
-// 	if err != nil {
-// 		log.Fatalf("failed to create output file: %v", err)
-// 	}
-// 	defer outputFile.Close()
+	outputFile, err := os.Create(filepath.Join(outputFilePath, outputFileName))
+	if err != nil {
+		log.Fatalf("failed to create output file: %v", err)
+	}
+	defer outputFile.Close()
 
-// 	// Call constructor
-// 	htmlLogger := logger.NewHTMLLogger(outputFilePath, outputFileName, projectType, outputFile)
-// 	htmlLogger.CreateFile()
+	// Call constructor
+	htmlLogger := logger.NewHTMLLogger(outputFilePath, outputFileName, projectType, outputFile)
+	loggerInstance = htmlLogger
 
-// 	// Initialise headings
-// 	column_names = []string{"Time", "Request type", "Sent Contents", "HTTP Code"}
-// 	htmlLogger.CreateTableHeadings("background-color:lightgrey", column_names)
+	loggerInstance.CreateFile()
 
-// 	htmlLogger.AddRowWithStyle("background-color:palegreen", []string{"ayagayaygyagsgy", "ayagayaygyagsgy", "ayagayaygyagsgy", "ayagayaygyagsgy"})
+	// Initialise headings
+	column_names = []string{"Time", "Request type", "Sent Contents", "HTTP Code"}
+	loggerInstance.CreateTableHeadings("background-color:lightgrey", column_names)
 
-// 	if err := htmlLogger.CloseFile(footerFilePath); err != nil {
-// 		log.Fatalf("failed to close output file: %v", err)
-// 	}
-
-// 	fmt.Println("HTML logger created and used successfully.")
-// }
+	fmt.Println("HTML logger created and used successfully.")
+}
 
 func Django_Test_Driver(energy int, url string, request_type string, input_file_path string, output_file_path string) {
 	var accumulated_iterations int
@@ -172,7 +172,8 @@ func Django_Test_Driver(energy int, url string, request_type string, input_file_
 	var responseFile *os.File
 
 	// Create html logger method
-	// htmlFileInit()
+	footerFilePath := "./HTML_Logger/formats/footer.html"
+	htmlFileInit()
 
 	// Set default filename if outputFilePath is empty
 	if output_file_path == "" || output_file_path == "./" {
@@ -255,6 +256,10 @@ func Django_Test_Driver(energy int, url string, request_type string, input_file_
 			testing_incomplete = false
 			break
 		}
+	}
+
+	if err := loggerInstance.CloseFile(footerFilePath); err != nil {
+		log.Fatalf("failed to close output file: %v", err)
 	}
 
 	responseFile.Close()
