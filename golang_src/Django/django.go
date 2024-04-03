@@ -14,14 +14,33 @@ import (
 
 	logger "github.com/50.053-Software-Testing/HTML_Logger"
 	fuzzer "github.com/50.053-Software-Testing/fuzzer/json_mutator"
+	interesting "github.com/50.053-Software-Testing/IsInteresting"
 )
 
 var loggerInstance *logger.HTMLLogger
+
+// var error_queue []json_seed
+
+var inputQ []json_seed
+
+type outputCriteria struct{
+	contentType string
+	statusCode int
+	responseBody string
+}
+
+type inputCriteria struct{
+	path string
+	method string
+	contentType string
+}
 
 type json_seed struct {
 	data          map[string]interface{}
 	key_to_mutate string
 	energy        int
+	oc			  outputCriteria
+	ic 			  inputCriteria
 }
 
 func responseFileInit(path string) (*os.File, error) {
@@ -91,6 +110,9 @@ func checkResponse(httpCode int, requestType string, body string, file *os.File,
 		fmt.Printf("Row: %s\n", row)
 		loggerInstance.AddRowWithStyle("background-color:tomato", row)
 
+		// TODO - isInteresting - if an error, append to the error_queue
+		// error_queue = append(error_queue, cur_seed)
+
 		// Write the response body to the file for fucked up responses
 		_, _ = file.WriteString("\n")
 		_, err := io.Copy(file, resp.Body)
@@ -130,6 +152,11 @@ func requestSender(outputFile *os.File, requestType string, body string, url str
 	}
 	defer resp.Body.Close()
 
+	// Get the lastmost (current) seed from queue, parse responses, and add it to the current seed's output criteria
+	curSeed := inputQ[len(inputQ)-1]
+	curSeed.oc.contentType, curSeed.oc.statusCode, curSeed.oc.responseBody = interesting.ResponseParser(*resp)
+	inputQ[len(inputQ)-1] = curSeed
+	
 	// Get the http request shit
 	httpCode = resp.StatusCode
 	checkResponse(httpCode, requestType, body, outputFile, resp)
@@ -167,7 +194,7 @@ func Django_Test_Driver(energy int, url string, request_type string, input_file_
 	var accumulated_iterations int
 	var testing_incomplete bool
 	var data map[string]interface{}
-	var inputQ []json_seed
+	// var errorQ []json_seed
 	var filename string
 	var responseFile *os.File
 
@@ -224,7 +251,9 @@ func Django_Test_Driver(energy int, url string, request_type string, input_file_
 
 		for i := 0; i < curSeed.energy; i++ {
 			curSeed.data = fuzzer.MutateRequests(request_type, curSeed.data)
+
 			inputQ = append(inputQ, curSeed)
+
 			jsonData, err := json.Marshal(curSeed.data)
 			if err != nil {
 				fmt.Println("Error marshalling JSON:", err)
