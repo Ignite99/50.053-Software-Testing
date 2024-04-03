@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"github.com/50.053-Software-Testing/BLE"
-	coap "github.com/50.053-Software-Testing/CoAP"
 	"github.com/50.053-Software-Testing/Django"
+	coap "github.com/50.053-Software-Testing/coap"
 )
 
 var (
