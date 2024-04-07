@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"sort"
+	"reflect"
 )
 
 type OutputCriteria struct {
@@ -56,8 +57,11 @@ func ResponseParser(response http.Response) (string, int, string) {
 	return contentType, statusCode, responseBodyStr
 }
 
-func CheckIsInteresting(currSeed Json_seed, prevSeed Json_seed) bool {
-	// If the current seed has the same oc and ic as the prev seed's oc and ic --> not interesting
+func CheckIsInteresting(currSeed Json_seed, prevSeed Json_seed, errorQ []Json_seed) bool {
+	// Considered not interesting if:
+	//		- prev IC same as cur IC &&
+	// 		- prev OC same as cur OC && 
+	// 		- curSeed exists in errorQ
 	
 	currIc := currSeed.IC
 	prevIc := prevSeed.IC
@@ -72,6 +76,11 @@ func CheckIsInteresting(currSeed Json_seed, prevSeed Json_seed) bool {
 	boolOcEqual := currOc.ContentType == prevOc.ContentType &&
 		currOc.StatusCode == prevOc.StatusCode &&
 		currOc.ResponseBody == prevOc.ResponseBody
+
+		
+	// TODO: Incomplete implementation of checking ErrorQ
+	inErrorQ := isExistsInErrorQ(currSeed, errorQ )
+	fmt.Printf("inErrorQ %s\n", inErrorQ)
 
 	return !(boolIcEqual && boolOcEqual)
 }
@@ -92,4 +101,13 @@ func isContentTypeSame(currIcContentType []string, prevIcContentType []string) b
     }
 
     return true
+}
+
+func isExistsInErrorQ(currSeed Json_seed, errorQ []Json_seed) bool {
+	for _, seed := range errorQ {
+		if reflect.DeepEqual(seed, currSeed) {
+			return true
+		}
+	}
+	return false
 }
