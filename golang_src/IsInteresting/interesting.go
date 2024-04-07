@@ -4,29 +4,33 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"sort"
 )
 
-
-type outputCriteria struct{
-	contentType string
-	statusCode int
-	responseBody string
+type OutputCriteria struct {
+	ContentType  string
+	StatusCode   int
+	ResponseBody string
 }
 
-type inputCriteria struct{
-	path string
-	method string
-	contentType string
+type InputCriteria struct {
+	Path        string
+	Method      string
+	ContentType []string
 }
 
-type json_seed struct {
-	data          map[string]interface{}
-	key_to_mutate string
-	energy        int
-	oc			  outputCriteria
-	ic 			  inputCriteria
+type Json_seed struct {
+	Data          map[string]interface{}
+	Key_to_mutate string
+	Energy        int
+	OC            OutputCriteria
+	IC            InputCriteria
 }
 
+func RequestParser(path string, method string, contentType []string) InputCriteria {
+	ic := InputCriteria{Path: path, Method: method, ContentType: contentType}
+    return ic
+}
 
 func ResponseParser(response http.Response) (string, int, string) {
 	// fmt.Println("-------------------------")
@@ -52,7 +56,40 @@ func ResponseParser(response http.Response) (string, int, string) {
 	return contentType, statusCode, responseBodyStr
 }
 
-func CheckIsInteresting(input_queue []json_seed, oc outputCriteria, ic inputCriteria) bool{
-	// TODO - check if the seeds in the queue have the same oc and ic as the current json_seed's oc and ic
-	return false;
+func CheckIsInteresting(currSeed Json_seed, prevSeed Json_seed) bool {
+	// If the current seed has the same oc and ic as the prev seed's oc and ic --> not interesting
+	
+	currIc := currSeed.IC
+	prevIc := prevSeed.IC
+
+	currOc := currSeed.OC
+	prevOc := prevSeed.OC
+
+	boolIcEqual := currIc.Path == prevIc.Path &&
+	currIc.Method == prevIc.Method &&
+	isContentTypeSame(currIc.ContentType, prevIc.ContentType)
+
+	boolOcEqual := currOc.ContentType == prevOc.ContentType &&
+		currOc.StatusCode == prevOc.StatusCode &&
+		currOc.ResponseBody == prevOc.ResponseBody
+
+	return !(boolIcEqual && boolOcEqual)
+}
+
+func isContentTypeSame(currIcContentType []string, prevIcContentType []string) bool {
+	
+	if len(currIcContentType) != len(prevIcContentType) {
+		return false
+    }
+
+	sort.Strings(currIcContentType)
+	sort.Strings(prevIcContentType)
+
+    for i := range currIcContentType {
+        if currIcContentType[i] != prevIcContentType[i] {
+            return false
+        }
+    }
+
+    return true
 }
