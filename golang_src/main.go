@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"github.com/50.053-Software-Testing/BLE"
+	coap "github.com/50.053-Software-Testing/CoAP"
 	"github.com/50.053-Software-Testing/Django"
-	coap "github.com/50.053-Software-Testing/coap"
 )
 
 var (
@@ -138,11 +138,9 @@ func main() {
 	if projectType == "COAP" {
 		fmt.Println("[COAP] Fuzzer has initiated call to COAP!")
 		coap.CoAPTestDriver()
-		// CoAP_Handler()
 	} else if projectType == "DJANGO" {
 		fmt.Println("[DJANGO] Fuzzer has initiated call to DJANGO Web Application!")
 		Django.Django_Test_Driver(1, url, requestType, inputFilePath, outputFilePath)
-
 	} else if projectType == "BLE" {
 		fmt.Println("[BLE] Fuzzer has initiated call to BLE_Zephyr!")
 		BLE.BLE_Zephyr_Handler()
