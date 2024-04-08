@@ -1,7 +1,7 @@
 package Django
 
 import (
-	"bufio"
+	// "bufio"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -14,15 +14,13 @@ import (
 
 	logger "github.com/50.053-Software-Testing/HTML_Logger"
 	fuzzer "github.com/50.053-Software-Testing/fuzzer/json_mutator"
+	interesting "github.com/50.053-Software-Testing/IsInteresting"
 )
 
 var loggerInstance *logger.HTMLLogger
 
-type json_seed struct {
-	data          map[string]interface{}
-	key_to_mutate string
-	energy        int
-}
+var errorQ []interesting.Json_seed
+var inputQ []interesting.Json_seed
 
 func responseFileInit(path string) (*os.File, error) {
 	outputFile, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0644)
@@ -33,34 +31,6 @@ func responseFileInit(path string) (*os.File, error) {
 	return outputFile, nil
 }
 
-func isInteresting(line string, httpCode int) bool {
-	if strings.Contains(line, "\"success\": false") || httpCode != 200 {
-		return true
-	}
-
-	return false
-}
-
-func getLastLine(filename string) (string, error) {
-	var lastLine string
-
-	file, err := os.Open(filename)
-	if err != nil {
-		return lastLine, err
-	}
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		lastLine = scanner.Text()
-	}
-
-	if err := scanner.Err(); err != nil {
-		return lastLine, err
-	}
-
-	return lastLine, nil
-}
 
 func checkResponse(httpCode int, requestType string, body string, file *os.File, resp *http.Response) {
 	var row []string
@@ -87,7 +57,7 @@ func checkResponse(httpCode int, requestType string, body string, file *os.File,
 		loggerInstance.AddRowWithStyle("background-color:palegreen", row)
 		return
 	default:
-		fmt.Printf("%s request succeeded! HTTP Status: %d\n", requestType, httpCode)
+		fmt.Printf("%s request FAILED! HTTP Status: %d\n", requestType, httpCode)
 		fmt.Printf("Row: %s\n", row)
 		loggerInstance.AddRowWithStyle("background-color:tomato", row)
 
@@ -130,6 +100,11 @@ func requestSender(outputFile *os.File, requestType string, body string, url str
 	}
 	defer resp.Body.Close()
 
+	// Get the lastmost (current) seed from queue, parse responses, and add it to the current seed's output criteria
+	curSeed := inputQ[len(inputQ)-1]
+	curSeed.OC.ContentType, curSeed.OC.StatusCode, curSeed.OC.ResponseBody = interesting.ResponseParser(*resp)
+	inputQ[len(inputQ)-1] = curSeed
+	
 	// Get the http request shit
 	httpCode = resp.StatusCode
 	checkResponse(httpCode, requestType, body, outputFile, resp)
@@ -167,20 +142,20 @@ func Django_Test_Driver(energy int, url string, request_type string, input_file_
 	var accumulated_iterations int
 	var testing_incomplete bool
 	var data map[string]interface{}
-	var inputQ []json_seed
-	var filename string
+	// var errorQ []json_seed
+	// var filename string
 	var responseFile *os.File
 
 	// Create html logger method
 	footerFilePath := "./HTML_Logger/formats/footer.html"
 	htmlFileInit()
 
-	// Set default filename if outputFilePath is empty
-	if output_file_path == "" || output_file_path == "./" {
-		filename = "./fuzzing_responses/response.txt"
-	} else {
-		filename = output_file_path
-	}
+	// // Set default filename if outputFilePath is empty
+	// if output_file_path == "" || output_file_path == "./" {
+	// 	filename = "./fuzzing_responses/response.txt"
+	// } else {
+	// 	filename = output_file_path
+	// }
 
 	responseFile, err := responseFileInit(output_file_path)
 	if err != nil {
@@ -205,13 +180,16 @@ func Django_Test_Driver(energy int, url string, request_type string, input_file_
 		return
 	}
 
+	var RequestBodyPropertiesTemp []string
+
 	for key, _ := range data {
-		seed := json_seed{
-			data:          data,
-			key_to_mutate: key,
-			energy:        3,
+		seed := interesting.Json_seed{
+			Data:          data,
+			Key_to_mutate: key,
+			Energy:        3,
 		}
 		inputQ = append(inputQ, seed)
+		RequestBodyPropertiesTemp = append(RequestBodyPropertiesTemp, key)
 	}
 
 	for testing_incomplete {
@@ -222,10 +200,14 @@ func Django_Test_Driver(energy int, url string, request_type string, input_file_
 		curSeed := inputQ[0]
 		inputQ = inputQ[1:]
 
-		for i := 0; i < curSeed.energy; i++ {
-			curSeed.data = fuzzer.MutateRequests(request_type, curSeed.data)
+		for i := 0; i < curSeed.Energy; i++ {
+			fmt.Printf("\n")
+
+			curSeed.Data = fuzzer.MutateRequests(request_type, curSeed.Data)
+
 			inputQ = append(inputQ, curSeed)
-			jsonData, err := json.Marshal(curSeed.data)
+
+			jsonData, err := json.Marshal(curSeed.Data)
 			if err != nil {
 				fmt.Println("Error marshalling JSON:", err)
 				return
@@ -238,15 +220,26 @@ func Django_Test_Driver(energy int, url string, request_type string, input_file_
 				break
 			}
 
-			resString, err := getLastLine(filename)
-			if err != nil {
-				fmt.Println("FUCK IT WE BALLING IN LAST LINE AND DIE", err)
-				break
-			}
 
-			if !isInteresting(resString, httpCode) {
-				// Not interesting, so remove the new mutated input
-				inputQ = inputQ[:len(inputQ)-1]
+			
+			reqContentType := "json"
+			curSeed.IC = interesting.RequestParser(url, request_type, reqContentType, RequestBodyPropertiesTemp)
+			
+			
+			if i != 0 { // TODO,  wrong implementation since this i refers to energy.
+				prevSeed := inputQ[i-1]
+				var isInteresting = interesting.CheckIsInteresting(curSeed, prevSeed, errorQ)
+
+				if isInteresting == false {
+					// Not interesting, so remove new mutated input.
+					inputQ = inputQ[:len(inputQ)-1]
+					fmt.Printf("Seed removed. \n")
+				}
+			}
+			
+			// 400 error, append curSeed to the error_queue
+			if (httpCode / 100) % 10 == 4 {
+				errorQ = append(errorQ, curSeed)
 			}
 		}
 

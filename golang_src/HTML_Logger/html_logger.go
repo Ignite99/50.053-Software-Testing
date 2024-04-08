@@ -114,12 +114,12 @@ func (logger *HTMLLogger) AddRowWithStyle(style string, row []string) {
 	}
 
 	logger.outputFile.WriteString("<tr>\n")
-	logger.outputFile.WriteString(fmt.Sprintf(`<th style="%s">%d</th>\n`, style, logger.rowNum))
+	logger.outputFile.WriteString(fmt.Sprintf(`<th style="%s">%d</th>`, style, logger.rowNum))
 
 	for i := 0; i < rowSize; i++ {
-		logger.outputFile.WriteString(fmt.Sprintf(`<th style="%s">%s</th>\n`, style, row[i]))
+		logger.outputFile.WriteString(fmt.Sprintf(`<th style="%s">%s</th>`, style, row[i]))
 	}
-	logger.outputFile.WriteString("</tr>\n")
+	logger.outputFile.WriteString("</tr>")
 }
 
 // Close with footer (at least thats what i think it does - nic)
