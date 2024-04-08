@@ -17,3 +17,19 @@ func CheckIsInteresting(currSeed Seed, inputQ []Seed) bool {
 	}
 	return true
 }
+
+func CheckCodeSuccess(currCode string) bool {
+	success := []string{"Created", "Deleted", "Valid", "Changed", "Content", "Continue"}
+	// clientError := []string{"BadRequest", "Unauthorized", "BadOption", "Forbidden", "NotFound", "MethodNotAllowed", "NotAcceptable", "RequestEntityIncomplete", "PreconditionFailed", "RequestEntityTooLarge", "UnsupportedMediaType"}
+	// serverError := []string{"TooManyRequests", "InternalServerError", "NotImplemented", "BadGateway", "ServiceUnavailable", "GatewayTimeout", "ProxyingNotSupported"}
+
+	// check if currCode is inside the success codes, return true (no error)
+	for _, code := range success {
+		if currCode == code {
+			return true
+		}
+	}
+
+	// if not inside success codes, return false (got error)
+	return false
+}

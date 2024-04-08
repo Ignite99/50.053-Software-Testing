@@ -175,7 +175,11 @@ func (fuzzer *CoAPFuzzer) send_get_request(currSeed Seed) {
 	// append to HTML Logger
 	currTime := time.Now().Format(time.RFC3339)
 	row := []string{currTime, path, "GET", "", resp.String(), responseString, typeResponse, codeResponse}
-	fuzzingLogger.AddRowWithStyle("background-color:honeydew", row)
+	if CheckCodeSuccess(codeResponse) {
+		fuzzingLogger.AddRowWithStyle("background-color:honeydew", row)
+	} else {
+		fuzzingLogger.AddRowWithStyle("background-color:lightgreen", row)
+	}
 
 	// modify currSeed's output and input criteria
 	oc := OutputCriteria{"text", codeResponse, typeResponse}
@@ -230,7 +234,11 @@ func (fuzzer *CoAPFuzzer) send_post_request(currSeed Seed) {
 	// append to HTML Logger
 	currTime := time.Now().Format(time.RFC3339)
 	row := []string{currTime, path, "POST", payload, resp.String(), responseString, typeResponse, codeResponse}
-	fuzzingLogger.AddRowWithStyle("background-color:lightCyan", row)
+	if CheckCodeSuccess(codeResponse) {
+		fuzzingLogger.AddRowWithStyle("background-color:lightCyan", row)
+	} else {
+		fuzzingLogger.AddRowWithStyle("background-color:skyBlue", row)
+	}
 
 	// make output and input criteria
 	oc := OutputCriteria{"text", codeResponse, typeResponse}
@@ -284,7 +292,11 @@ func (fuzzer *CoAPFuzzer) send_put_request(currSeed Seed) {
 	// append to HTML Logger
 	currTime := time.Now().Format(time.RFC3339)
 	row := []string{currTime, path, "PUT", payload, resp.String(), responseString, typeResponse, codeResponse}
-	fuzzingLogger.AddRowWithStyle("background-color:blanchedAlmond", row)
+	if CheckCodeSuccess(codeResponse) {
+		fuzzingLogger.AddRowWithStyle("background-color:cornsilk", row)
+	} else {
+		fuzzingLogger.AddRowWithStyle("background-color:lightSalmon", row)
+	}
 
 	// make output and input criteria
 	oc := OutputCriteria{"text", codeResponse, typeResponse}
@@ -295,7 +307,7 @@ func (fuzzer *CoAPFuzzer) send_put_request(currSeed Seed) {
 	// check if anything is interesting and should be put inside errorQ and errorLogger
 	if CheckIsInteresting(currSeed, errorQ) {
 		errorQ = append(errorQ, currSeed)
-		errorLogger.AddRowWithStyle("background-color:blanchedAlmond", row)
+		errorLogger.AddRowWithStyle("background-color:cornsilk", row)
 	}
 
 	// check if currSeed isInteresting, if yes, put in inputQ
@@ -333,7 +345,11 @@ func (fuzzer *CoAPFuzzer) send_delete_request(currSeed Seed) {
 	// append to fuzzing logger
 	currTime := time.Now().Format(time.RFC3339)
 	row := []string{currTime, path, "DELETE", "", resp.String(), responseString, typeResponse, codeResponse}
-	fuzzingLogger.AddRowWithStyle("background-color:lavenderBlush", row)
+	if CheckCodeSuccess(codeResponse) {
+		fuzzingLogger.AddRowWithStyle("background-color:lavenderBlush", row)
+	} else {
+		fuzzingLogger.AddRowWithStyle("background-color:lightPink", row)
+	}
 
 	// make output and input criteria
 	oc := OutputCriteria{"text", codeResponse, typeResponse}
@@ -453,6 +469,9 @@ func CoAPTestDriver(ip_addr string, port int) {
 
 	log.Printf("Total test cases: %d", fuzzer.total_test_cases)
 	log.Printf("Total bugs found: %d", fuzzer.total_bugs_found)
+
+	fuzzingLogger.AddText("", fmt.Sprintf("Total test cases found: %d", fuzzer.total_test_cases))
+	fuzzingLogger.AddText("", fmt.Sprintf("Total bugs found: %d", fuzzer.total_bugs_found))
 
 	// close html instances
 	footerFilePath := "./HTML_Logger/formats/footer.html"
