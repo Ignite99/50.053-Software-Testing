@@ -19,10 +19,9 @@ import (
 var loggerInstance *logger.HTMLLogger
 
 type OutputCriteria struct {
-	ContentType  string
-	StatusCode   string
-	ResponseBody string
-	MessageType  string
+	ContentType string
+	StatusCode  string
+	MessageType string
 }
 
 type InputCriteria struct {
@@ -32,11 +31,10 @@ type InputCriteria struct {
 }
 
 type Seed struct {
-	Data          string
-	Key_to_mutate string
-	Energy        int
-	OC            OutputCriteria
-	IC            InputCriteria
+	Data   string
+	Energy int
+	OC     OutputCriteria
+	IC     InputCriteria
 }
 
 var errorQ []Seed
@@ -80,9 +78,13 @@ func htmlFileInit() {
 func (fuzzer *CoAPFuzzer) IsInteresting(currSeed Seed) {
 	// if interesting, add to inputQ
 	if fuzzer.total_test_cases == 0 {
+		log.Printf("test case 0 - is interesting")
 		inputQ = append(inputQ, currSeed)
 	} else if CheckIsInteresting(currSeed, inputQ, errorQ) {
+		log.Printf("is interesting")
 		inputQ = append(inputQ, currSeed)
+	} else {
+		log.Printf("not interesting")
 	}
 }
 
@@ -173,8 +175,6 @@ func (fuzzer *CoAPFuzzer) send_post_request(path string, payload string) {
 	codeResponse := resp.Code().String()
 	typeResponse := resp.Type().String()
 
-	// log.Printf("TYPE RESPONSE %s", typeResponse)
-
 	log.Printf("Post Request to %s", path)
 	log.Printf("Response: %v", resp.String())
 	log.Printf("Response body: %v", responseString)
@@ -183,22 +183,14 @@ func (fuzzer *CoAPFuzzer) send_post_request(path string, payload string) {
 		fmt.Printf(err.Error())
 	}
 
-	// OC format - ContentType, StatusCode (string), responseBody, messageType
-	// IC format - Path, Method, ContentType
-	oc := OutputCriteria{"text", codeResponse, resp.String(), typeResponse}
+	// make output and input criteria
+	oc := OutputCriteria{"text", codeResponse, typeResponse}
 	ic := InputCriteria{path, "POST", "text"} // TODO - get type of request payload
 
 	// make currSeed
-	currSeed := Seed{
-		Data:          payload,
-		Key_to_mutate: "key", //TODO - get key; how?
-		Energy:        3,
-		OC:            oc,
-		IC:            ic,
-	}
+	currSeed := Seed{payload, 3, oc, ic}
 
 	// check if isInteresting, if yes, put in inputQ
-	// if inputQ is empty, currSeed is interesting
 	fuzzer.IsInteresting(currSeed)
 
 	// append to HTML Logger
@@ -236,6 +228,16 @@ func (fuzzer *CoAPFuzzer) send_put_request(path string, payload string) {
 	log.Printf("PUT Request to %s", path)
 	log.Printf("Response: %v", resp.String())
 	log.Printf("Response body: %v", responseString)
+
+	// make output and input criteria
+	oc := OutputCriteria{"text", codeResponse, typeResponse}
+	ic := InputCriteria{path, "PUT", "text"} // TODO - get type of request payload
+
+	// make currSeed
+	currSeed := Seed{payload, 3, oc, ic}
+
+	// check if isInteresting
+	fuzzer.IsInteresting(currSeed)
 
 	// append to HTML Logger
 	currTime := time.Now().Format(time.RFC3339)
@@ -294,6 +296,11 @@ func (fuzzer *CoAPFuzzer) run_fuzzer(path string) {
 	// take the first seed in the queue
 	currSeed := inputQ[0]
 	inputQ = inputQ[1:]
+
+	// test inside inputQ
+	for _, seed := range inputQ {
+		fmt.Println(seed.Data)
+	}
 
 	// get payload and energy
 	payload := currSeed.Data
@@ -367,7 +374,7 @@ func CoAPTestDriver(ip_addr string, port int) {
 
 	// TODO - seed input should be from user input
 	// append the first payload (seed input) to the inputQ, giving an arbitrary energy of 3
-	inputQ = append(inputQ, Seed{payload, "key", 3, OutputCriteria{"text", "", "", ""}, InputCriteria{"", "", "text"}})
+	inputQ = append(inputQ, Seed{payload, 3, OutputCriteria{"text", "", ""}, InputCriteria{"", "", "text"}})
 
 	// create html instance
 	htmlFileInit()
