@@ -17,7 +17,8 @@ type OutputCriteria struct {
 type InputCriteria struct {
 	Path        string
 	Method      string
-	ContentType []string
+	ContentType string
+	RequestBodyProperties []string // TODO: rename this
 }
 
 type Json_seed struct {
@@ -28,8 +29,8 @@ type Json_seed struct {
 	IC            InputCriteria
 }
 
-func RequestParser(path string, method string, contentType []string) InputCriteria {
-	ic := InputCriteria{Path: path, Method: method, ContentType: contentType}
+func RequestParser(path string, method string, contentType string, requestBodyProperties []string) InputCriteria {
+	ic := InputCriteria{Path: path, Method: method, ContentType: contentType, RequestBodyProperties: requestBodyProperties}
     return ic
 }
 
@@ -71,7 +72,8 @@ func CheckIsInteresting(currSeed Json_seed, prevSeed Json_seed, errorQ []Json_se
 
 	boolIcEqual := currIc.Path == prevIc.Path &&
 	currIc.Method == prevIc.Method &&
-	isContentTypeSame(currIc.ContentType, prevIc.ContentType)
+	currIc.ContentType == prevIc.ContentType &&
+	isContentTypeSame(currIc.RequestBodyProperties, prevIc.RequestBodyProperties)
 
 	boolOcEqual := currOc.ContentType == prevOc.ContentType &&
 		currOc.StatusCode == prevOc.StatusCode &&
@@ -82,20 +84,20 @@ func CheckIsInteresting(currSeed Json_seed, prevSeed Json_seed, errorQ []Json_se
 	inErrorQ := isExistsInErrorQ(currSeed, errorQ )
 	fmt.Printf("inErrorQ %s\n", inErrorQ)
 
-	return !(boolIcEqual && boolOcEqual)
+	return !(boolIcEqual && boolOcEqual && inErrorQ)
 }
 
-func isContentTypeSame(currIcContentType []string, prevIcContentType []string) bool {
+func isContentTypeSame(arr1 []string, arr2 []string) bool {
 	
-	if len(currIcContentType) != len(prevIcContentType) {
+	if len(arr1) != len(arr2) {
 		return false
     }
 
-	sort.Strings(currIcContentType)
-	sort.Strings(prevIcContentType)
+	sort.Strings(arr1)
+	sort.Strings(arr2)
 
-    for i := range currIcContentType {
-        if currIcContentType[i] != prevIcContentType[i] {
+    for i := range arr1 {
+        if arr1[i] != arr2[i] {
             return false
         }
     }

@@ -180,7 +180,7 @@ func Django_Test_Driver(energy int, url string, request_type string, input_file_
 		return
 	}
 
-	var contentTypeTemp []string
+	var RequestBodyPropertiesTemp []string
 
 	for key, _ := range data {
 		seed := interesting.Json_seed{
@@ -189,7 +189,7 @@ func Django_Test_Driver(energy int, url string, request_type string, input_file_
 			Energy:        3,
 		}
 		inputQ = append(inputQ, seed)
-		contentTypeTemp = append(contentTypeTemp, key)
+		RequestBodyPropertiesTemp = append(RequestBodyPropertiesTemp, key)
 	}
 
 	for testing_incomplete {
@@ -220,13 +220,10 @@ func Django_Test_Driver(energy int, url string, request_type string, input_file_
 				break
 			}
 
-			// 400 error, append curSeed to the error_queue
-			if (httpCode / 100) % 10 == 4 {
-				errorQ = append(errorQ, curSeed)
-			}
 
 			
-			curSeed.IC = interesting.RequestParser(url, request_type, contentTypeTemp)
+			reqContentType := "json"
+			curSeed.IC = interesting.RequestParser(url, request_type, reqContentType, RequestBodyPropertiesTemp)
 			
 			
 			if i != 0 { // TODO,  wrong implementation since this i refers to energy.
@@ -238,6 +235,11 @@ func Django_Test_Driver(energy int, url string, request_type string, input_file_
 					inputQ = inputQ[:len(inputQ)-1]
 					fmt.Printf("Seed removed. \n")
 				}
+			}
+			
+			// 400 error, append curSeed to the error_queue
+			if (httpCode / 100) % 10 == 4 {
+				errorQ = append(errorQ, curSeed)
 			}
 		}
 
