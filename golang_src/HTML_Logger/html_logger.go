@@ -71,6 +71,10 @@ func (logger *HTMLLogger) CreateFile() error {
 	return nil
 }
 
+func (logger *HTMLLogger) AddText(style string, text string) {
+	logger.outputFile.WriteString(fmt.Sprintf("<p style=\"%s;\">%s</p>\n", style, text))
+}
+
 func (logger *HTMLLogger) CreateTableHeadings(style string, columnNames []string) {
 	logger.columnNum = len(columnNames)
 	logger.outputFile.WriteString(" <table>\n")

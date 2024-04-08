@@ -1,8 +1,10 @@
 package coap
 
-// check if current seed contains the same attributes as those in inputQ and errorQ
-func CheckIsInteresting(currSeed Seed, inputQ []Seed, errorQ []Seed) bool {
-	// TODO - IMPLEMENT CHECKS
+// check if current seed contains the same attributes as those in inputQ
+func CheckIsInteresting(currSeed Seed, inputQ []Seed) bool {
+	if len(inputQ) == 0 {
+		return true
+	}
 	for _, seed := range inputQ {
 		if currSeed.IC.Path == seed.IC.Path &&
 			currSeed.IC.Method == seed.IC.Method &&

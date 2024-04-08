@@ -16,7 +16,8 @@ import (
 	"github.com/plgd-dev/go-coap/v3/udp"
 )
 
-var loggerInstance *logger.HTMLLogger
+var fuzzingLogger *logger.HTMLLogger
+var errorLogger *logger.HTMLLogger
 
 type OutputCriteria struct {
 	ContentType string
@@ -48,13 +49,13 @@ type CoAPFuzzer struct {
 	total_bugs_found int
 }
 
-// initialise html file
-func htmlFileInit() {
-	var column_names []string
+// initialise html file for fuzzingLogger
+func fuzzingLoggerInit() {
+	var columnNames []string
 
 	outputFilePath := "./fuzzing_responses/"
 	outputFileName := "logs.html"
-	projectType := "CoAP"
+	projectType := "COAP"
 
 	outputFile, err := os.Create(filepath.Join(outputFilePath, outputFileName))
 	if err != nil {
@@ -63,25 +64,52 @@ func htmlFileInit() {
 	defer outputFile.Close()
 
 	// Call constructor
-	htmlLogger := logger.NewHTMLLogger(outputFilePath, outputFileName, projectType, outputFile)
-	loggerInstance = htmlLogger
+	fuzzingLogger = logger.NewHTMLLogger(outputFilePath, outputFileName, projectType, outputFile)
 
-	loggerInstance.CreateFile()
+	fuzzingLogger.CreateFile()
+
+	fuzzingLogger.AddText("text-align:center; font-size:26px", "CoAP Fuzzer Output")
 
 	// Initialise headings
-	column_names = []string{"Time", "Path", "Method", "Request Payload", "Response Body", "Response Payload", "Message Type", "CoAP Code"}
-	loggerInstance.CreateTableHeadings("background-color:lightgrey", column_names)
+	columnNames = []string{"Time", "Path", "Method", "Request Payload", "Response Body", "Response Payload", "Message Type", "CoAP Code"}
+	fuzzingLogger.CreateTableHeadings("background-color:lightgrey", columnNames)
 
-	fmt.Println("HTML logger created and used successfully.")
+	fmt.Println("Fuzzing HTML logger created and used successfully.")
+}
+
+// initialise html file for errorLogger
+func errorLoggerInit() {
+	var columnNames []string
+
+	outputFilePath := "./fuzzing_responses/"
+	outputFileName := "error_logs.html"
+	projectType := "COAP"
+
+	outputFile, err := os.Create(filepath.Join(outputFilePath, outputFileName))
+	if err != nil {
+		log.Fatalf("failed to create output file: %v", err)
+	}
+	defer outputFile.Close()
+
+	// Call constructor
+	errorLogger = logger.NewHTMLLogger(outputFilePath, outputFileName, projectType, outputFile)
+
+	errorLogger.CreateFile()
+
+	errorLogger.AddText("text-align:center; font-size:26px", "CoAP Error List")
+
+	// Initialise headings
+	columnNames = []string{"Time", "Path", "Method", "Request Payload", "Response Body", "Response Payload", "Message Type", "CoAP Code"}
+	errorLogger.CreateTableHeadings("background-color:lightgrey", columnNames)
+
+	fmt.Println("Error HTML logger created and used successfully.")
 }
 
 func (fuzzer *CoAPFuzzer) IsInteresting(currSeed Seed) {
 	// if interesting, add to inputQ
 	if fuzzer.total_test_cases == 0 {
-		log.Printf("test case 0 - is interesting")
 		inputQ = append(inputQ, currSeed)
-	} else if CheckIsInteresting(currSeed, inputQ, errorQ) {
-		log.Printf("is interesting")
+	} else if CheckIsInteresting(currSeed, inputQ) {
 		inputQ = append(inputQ, currSeed)
 	} else {
 		log.Printf("not interesting")
@@ -118,8 +146,10 @@ func (fuzzer *CoAPFuzzer) get_paths() {
 	log.Printf("Paths: %v", fuzzer.target_paths)
 }
 
-func (fuzzer *CoAPFuzzer) send_get_request(path string) {
+func (fuzzer *CoAPFuzzer) send_get_request(currSeed Seed) {
 	fuzzer.total_test_cases++
+	path := currSeed.IC.Path
+
 	co, err := udp.Dial(fmt.Sprintf("%s:%d", fuzzer.target_ip, fuzzer.target_port))
 	if err != nil {
 		log.Fatalf("Error dialing: %v", err)
@@ -144,14 +174,28 @@ func (fuzzer *CoAPFuzzer) send_get_request(path string) {
 
 	// append to HTML Logger
 	currTime := time.Now().Format(time.RFC3339)
-	row := []string{currTime, path, "GET", "N/A", resp.String(), responseString, typeResponse, codeResponse}
-	loggerInstance.AddRowWithStyle("background-color:aquamarine", row)
+	row := []string{currTime, path, "GET", "", resp.String(), responseString, typeResponse, codeResponse}
+	fuzzingLogger.AddRowWithStyle("background-color:honeydew", row)
+
+	// modify currSeed's output and input criteria
+	oc := OutputCriteria{"text", codeResponse, typeResponse}
+	ic := InputCriteria{path, "POST", "text"}
+	currSeed.IC = ic
+	currSeed.OC = oc
+
+	// check if anything is interesting and should be put inside errorQ and errorLogger
+	if CheckIsInteresting(currSeed, errorQ) {
+		errorQ = append(errorQ, currSeed)
+		errorLogger.AddRowWithStyle("background-color:honeydew", row)
+	}
 
 	co.Close()
 }
 
-func (fuzzer *CoAPFuzzer) send_post_request(path string, payload string) {
+func (fuzzer *CoAPFuzzer) send_post_request(currSeed Seed) {
 	fuzzer.total_test_cases++
+	path := currSeed.IC.Path
+	payload := currSeed.Data
 
 	co, err := udp.Dial(fmt.Sprintf("%s:%d", fuzzer.target_ip, fuzzer.target_port))
 	if err != nil {
@@ -183,26 +227,34 @@ func (fuzzer *CoAPFuzzer) send_post_request(path string, payload string) {
 		fmt.Printf(err.Error())
 	}
 
-	// make output and input criteria
-	oc := OutputCriteria{"text", codeResponse, typeResponse}
-	ic := InputCriteria{path, "POST", "text"} // TODO - get type of request payload
-
-	// make currSeed
-	currSeed := Seed{payload, 3, oc, ic}
-
-	// check if isInteresting, if yes, put in inputQ
-	fuzzer.IsInteresting(currSeed)
-
 	// append to HTML Logger
 	currTime := time.Now().Format(time.RFC3339)
 	row := []string{currTime, path, "POST", payload, resp.String(), responseString, typeResponse, codeResponse}
-	loggerInstance.AddRowWithStyle("background-color:paleTurquoise", row)
+	fuzzingLogger.AddRowWithStyle("background-color:lightCyan", row)
+
+	// make output and input criteria
+	oc := OutputCriteria{"text", codeResponse, typeResponse}
+	ic := InputCriteria{path, "POST", "text"} // TODO - get type of request payload
+	currSeed.IC = ic
+	currSeed.OC = oc
+
+	// check if anything is interesting and should be put inside errorQ and errorLogger
+	if CheckIsInteresting(currSeed, errorQ) {
+		errorQ = append(errorQ, currSeed)
+		errorLogger.AddRowWithStyle("background-color:lightCyan", row)
+	}
+
+	// check if currSeed isInteresting, if yes, put in inputQ
+	fuzzer.IsInteresting(currSeed)
 
 	co.Close()
 }
 
-func (fuzzer *CoAPFuzzer) send_put_request(path string, payload string) {
+func (fuzzer *CoAPFuzzer) send_put_request(currSeed Seed) {
 	fuzzer.total_test_cases++
+	path := currSeed.IC.Path
+	payload := currSeed.Data
+
 	co, err := udp.Dial(fmt.Sprintf("%s:%d", fuzzer.target_ip, fuzzer.target_port))
 	if err != nil {
 		log.Fatalf("Error dialing: %v", err)
@@ -229,26 +281,33 @@ func (fuzzer *CoAPFuzzer) send_put_request(path string, payload string) {
 	log.Printf("Response: %v", resp.String())
 	log.Printf("Response body: %v", responseString)
 
-	// make output and input criteria
-	oc := OutputCriteria{"text", codeResponse, typeResponse}
-	ic := InputCriteria{path, "PUT", "text"} // TODO - get type of request payload
-
-	// make currSeed
-	currSeed := Seed{payload, 3, oc, ic}
-
-	// check if isInteresting
-	fuzzer.IsInteresting(currSeed)
-
 	// append to HTML Logger
 	currTime := time.Now().Format(time.RFC3339)
 	row := []string{currTime, path, "PUT", payload, resp.String(), responseString, typeResponse, codeResponse}
-	loggerInstance.AddRowWithStyle("background-color:navajoWhite", row)
+	fuzzingLogger.AddRowWithStyle("background-color:blanchedAlmond", row)
+
+	// make output and input criteria
+	oc := OutputCriteria{"text", codeResponse, typeResponse}
+	ic := InputCriteria{path, "PUT", "text"} // TODO - get type of request payload
+	currSeed.IC = ic
+	currSeed.OC = oc
+
+	// check if anything is interesting and should be put inside errorQ and errorLogger
+	if CheckIsInteresting(currSeed, errorQ) {
+		errorQ = append(errorQ, currSeed)
+		errorLogger.AddRowWithStyle("background-color:blanchedAlmond", row)
+	}
+
+	// check if currSeed isInteresting, if yes, put in inputQ
+	fuzzer.IsInteresting(currSeed)
 
 	co.Close()
 }
 
-func (fuzzer *CoAPFuzzer) send_delete_request(path string) {
+func (fuzzer *CoAPFuzzer) send_delete_request(currSeed Seed) {
 	fuzzer.total_test_cases++
+	path := currSeed.IC.Path
+
 	co, err := udp.Dial(fmt.Sprintf("%s:%d", fuzzer.target_ip, fuzzer.target_port))
 	if err != nil {
 		log.Fatalf("Error dialing: %v", err)
@@ -271,25 +330,37 @@ func (fuzzer *CoAPFuzzer) send_delete_request(path string) {
 	log.Printf("Response: %v", resp.String())
 	log.Printf("Response body: %v", responseString)
 
-	// append to HTML Logger
+	// append to fuzzing logger
 	currTime := time.Now().Format(time.RFC3339)
-	row := []string{currTime, path, "DELETE", "N/A", resp.String(), responseString, typeResponse, codeResponse}
-	loggerInstance.AddRowWithStyle("background-color:lightSalmon", row)
+	row := []string{currTime, path, "DELETE", "", resp.String(), responseString, typeResponse, codeResponse}
+	fuzzingLogger.AddRowWithStyle("background-color:lavenderBlush", row)
+
+	// make output and input criteria
+	oc := OutputCriteria{"text", codeResponse, typeResponse}
+	ic := InputCriteria{path, "DELETE", "text"} // TODO - get type of request payload
+	currSeed.IC = ic
+	currSeed.OC = oc
+
+	// check if anything is interesting and should be put inside errorQ and errorLogger
+	if CheckIsInteresting(currSeed, errorQ) {
+		errorQ = append(errorQ, currSeed)
+		errorLogger.AddRowWithStyle("background-color:lavenderBlush", row)
+	}
 
 	co.Close()
 }
 
 func (fuzzer *CoAPFuzzer) run_fuzzer(path string) {
-	// check if inputQ is empty
+	// check if inputQ is empty. If empty, exit program.
 	if len(inputQ) == 0 {
 		log.Printf("Input Queue is empty! Exiting the program...")
-
-		// close HTML logger
 		footerFilePath := "./HTML_Logger/formats/footer.html"
-		if err := loggerInstance.CloseFile(footerFilePath); err != nil {
+		if err := fuzzingLogger.CloseFile(footerFilePath); err != nil {
 			log.Fatalf("failed to close output file: %v", err)
 		}
-
+		if err := errorLogger.CloseFile(footerFilePath); err != nil {
+			log.Fatalf("failed to close output file: %v", err)
+		}
 		os.Exit(0)
 	}
 
@@ -297,41 +368,35 @@ func (fuzzer *CoAPFuzzer) run_fuzzer(path string) {
 	currSeed := inputQ[0]
 	inputQ = inputQ[1:]
 
-	// test inside inputQ
-	for _, seed := range inputQ {
-		fmt.Println(seed.Data)
-	}
-
-	// get payload and energy
-	payload := currSeed.Data
-	energy := currSeed.Energy
+	currSeed.IC.Path = path
 
 	// send a GET request
-	fuzzer.send_get_request(path)
+	fuzzer.send_get_request(currSeed)
 
 	// send a DELETE request
-	fuzzer.send_delete_request(path)
+	fuzzer.send_delete_request(currSeed)
 
 	// send a POST request
-	fuzzer.send_post_request(path, payload)
+	fuzzer.send_post_request(currSeed)
 
 	// send a PUT request
-	fuzzer.send_put_request(path, payload)
+	fuzzer.send_put_request(currSeed)
 
-	for i := 0; i < energy; i++ {
-		mutated_payload := mutate_add_byte(payload)
+	for i := 0; i < currSeed.Energy; i++ {
+		mutated_payload := mutate_add_byte(currSeed.Data)
+		currSeed.Data = mutated_payload
 
 		// send a GET request
-		fuzzer.send_get_request(path)
+		fuzzer.send_get_request(currSeed)
 
 		// send a DELETE request
-		fuzzer.send_delete_request(path)
+		fuzzer.send_delete_request(currSeed)
 
 		// send a POST request
-		fuzzer.send_post_request(path, mutated_payload)
+		fuzzer.send_post_request(currSeed)
 
 		// send a PUT request
-		fuzzer.send_put_request(path, mutated_payload)
+		fuzzer.send_put_request(currSeed)
 	}
 }
 
@@ -377,7 +442,8 @@ func CoAPTestDriver(ip_addr string, port int) {
 	inputQ = append(inputQ, Seed{payload, 3, OutputCriteria{"text", "", ""}, InputCriteria{"", "", "text"}})
 
 	// create html instance
-	htmlFileInit()
+	fuzzingLoggerInit()
+	errorLoggerInit()
 
 	// fuzz the target
 	for _, path := range fuzzer.target_paths {
@@ -388,9 +454,12 @@ func CoAPTestDriver(ip_addr string, port int) {
 	log.Printf("Total test cases: %d", fuzzer.total_test_cases)
 	log.Printf("Total bugs found: %d", fuzzer.total_bugs_found)
 
-	// close html instance
+	// close html instances
 	footerFilePath := "./HTML_Logger/formats/footer.html"
-	if err := loggerInstance.CloseFile(footerFilePath); err != nil {
+	if err := fuzzingLogger.CloseFile(footerFilePath); err != nil {
+		log.Fatalf("failed to close output file: %v", err)
+	}
+	if err := errorLogger.CloseFile(footerFilePath); err != nil {
 		log.Fatalf("failed to close output file: %v", err)
 	}
 }
