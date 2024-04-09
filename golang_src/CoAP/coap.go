@@ -68,7 +68,7 @@ func fuzzingLoggerInit() {
 
 	fuzzingLogger.CreateFile()
 
-	fuzzingLogger.AddText("text-align:center; font-size:26px", "CoAP Fuzzer Output")
+	fuzzingLogger.AddText("text-align:center; font-size:26px;", "CoAP Fuzzer Output")
 
 	// Initialise headings
 	columnNames = []string{"Time", "Path", "Method", "Request Payload", "Response Body", "Response Payload", "Message Type", "CoAP Code"}
@@ -82,7 +82,7 @@ func errorLoggerInit() {
 	var columnNames []string
 
 	outputFilePath := "./fuzzing_responses/"
-	outputFileName := "error_logs.html"
+	outputFileName := "unique_logs.html"
 	projectType := "COAP"
 
 	outputFile, err := os.Create(filepath.Join(outputFilePath, outputFileName))
@@ -96,7 +96,7 @@ func errorLoggerInit() {
 
 	errorLogger.CreateFile()
 
-	errorLogger.AddText("text-align:center; font-size:26px", "CoAP Error List")
+	errorLogger.AddText("text-align:center; font-size:26px", "CoAP Unique Responses List")
 
 	// Initialise headings
 	columnNames = []string{"Time", "Path", "Method", "Request Payload", "Response Body", "Response Payload", "Message Type", "CoAP Code"}
@@ -107,12 +107,8 @@ func errorLoggerInit() {
 
 func (fuzzer *CoAPFuzzer) IsInteresting(currSeed Seed) {
 	// if interesting, add to inputQ
-	if fuzzer.total_test_cases == 0 {
+	if CheckIsInteresting(currSeed, inputQ) {
 		inputQ = append(inputQ, currSeed)
-	} else if CheckIsInteresting(currSeed, inputQ) {
-		inputQ = append(inputQ, currSeed)
-	} else {
-		log.Printf("not interesting")
 	}
 }
 
@@ -470,8 +466,8 @@ func CoAPTestDriver(ip_addr string, port int) {
 	log.Printf("Total test cases: %d", fuzzer.total_test_cases)
 	log.Printf("Total bugs found: %d", fuzzer.total_bugs_found)
 
-	fuzzingLogger.AddText("", fmt.Sprintf("Total test cases found: %d", fuzzer.total_test_cases))
-	fuzzingLogger.AddText("", fmt.Sprintf("Total bugs found: %d", fuzzer.total_bugs_found))
+	fuzzingLogger.AddText("text-align:center;", fmt.Sprintf("Total test cases found: %d", fuzzer.total_test_cases))
+	fuzzingLogger.AddText("text-align:center;", fmt.Sprintf("Total bugs found: %d", fuzzer.total_bugs_found))
 
 	// close html instances
 	footerFilePath := "./HTML_Logger/formats/footer.html"

@@ -78,7 +78,7 @@ func (logger *HTMLLogger) AddText(style string, text string) {
 func (logger *HTMLLogger) CreateTableHeadings(style string, columnNames []string) {
 	logger.columnNum = len(columnNames)
 	logger.outputFile.WriteString(" <table>\n")
-	logger.outputFile.WriteString(fmt.Sprintf(" <tr style=\"%s;\">\n", style))
+	logger.outputFile.WriteString(fmt.Sprintf(" <tr style=\"%s\">\n", style))
 	logger.outputFile.WriteString("<th>Test no.</th>\n")
 
 	for i := 0; i < logger.columnNum; i++ {
