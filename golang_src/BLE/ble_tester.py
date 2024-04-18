@@ -7,6 +7,7 @@ import asyncio
 import sys
 import os
 from binascii import hexlify
+import random
 
 from bumble.device import Device, Peer
 from bumble.host import Host
@@ -18,10 +19,36 @@ from bumble.transport import open_transport_or_link
 from bumble.utils import AsyncRunner
 from bumble.colors import color
 
+# -----------------------------------------------------------------------------
+# ------------------------PACKET MUTATOR---------------------------------------
+
+def packet_mutator(packet):
+    select_mutator = random.choice([0, 1, 2])
+    if select_mutator == 0:
+        print("[PACKET_MUTATOR]: flip_bit called")
+        return flip_bit(packet)
+    else:
+        # keep result as it is, no mutation
+        print("[PACKET_MUTATOR]: skip mutation")
+        return packet
+
+# randomly choose bit to flip from a random byte
+def flip_bit(packet):
+    bit_pos = random.randint(0, 5)
+    bitmask = 1 << bit_pos
+    result_byte = packet ^ bitmask  
+    # set limit to 62 bits
+    if result_byte > 62:
+        result_byte = 62 
+    print("Flipped byte result: ", hex(result_byte)) 
+    return result_byte
+
+# -----------------------------------------------------------------------------
+
 async def write_target(target, attribute, bytes):
     # Write
     try:
-        bytes_to_write = bytearray(bytes)
+        bytes_to_write = bytearray(int(bytes))
         await target.write_value(attribute, bytes_to_write, True)
         print(color(f'[OK] WRITE Handle 0x{attribute.handle:04X} --> Bytes={len(bytes_to_write):02d}, Val={hexlify(bytes_to_write).decode()}', 'green'))
         return True
@@ -89,8 +116,10 @@ class TargetEventsListener(Device.Listener):
         
         # -------- Main interaction with the target here --------
         print('=== Read/Write Attributes (Handles)')
+        mutated_packet = 0x01
         for attribute in attributes:
-            await write_target(target, attribute, [0x01])
+            mutated_packet = packet_mutator(mutated_packet)
+            await write_target(target, attribute, mutated_packet)
             await read_target(target, attribute)
         
         print('---------------------------------------------------------------')
