@@ -9,12 +9,60 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
 	logger "github.com/50.053-Software-Testing/HTML_Logger"
 	fuzzer "github.com/50.053-Software-Testing/fuzzer/json_mutator"
 )
+
+// alternative x
+type FakeOpenApi struct {
+	Path *Paths
+}
+
+type Paths map[string]*PathItem
+
+type PathItem struct {
+	ExtensionProps
+	Ref         string
+	Summary     string
+	Description string
+	Connect     *Operation
+	Delete      *Operation
+	Get         *Operation
+	Head        *Operation
+	Options     *Operation
+	Patch       *Operation
+	Post        *Operation
+	Put         *Operation
+	Trace       *Operation
+	Servers     Servers
+	Parameters  Parameters
+}
+
+// Coverage records the test coverage level of each path.
+type Coverage struct {
+	Levels []int
+}
+
+// Returns the concatenated string representing the coverage levels
+func (c *Coverage) String() string {
+	r := ""
+	for _, level := range c.Levels {
+		r += strconv.Itoa(level) + " "
+	}
+	return r
+}
+
+type ResponseInfo struct {
+	// request *base.Node
+	Request string
+	Code    int
+	Type    string
+	Body    string
+}
 
 var loggerInstance *logger.HTMLLogger
 
@@ -103,10 +151,21 @@ func checkResponse(httpCode int, requestType string, body string, file *os.File,
 	}
 }
 
-func requestSender(outputFile *os.File, requestType string, body string, url string) (int, error) {
+func requestSender(outputFile *os.File, requestType string, body string, url string) (int, error, *ResponseInfo) {
 	var httpCode int
 	var req *http.Request
 	var err error
+
+	info := &ResponseInfo{
+		Request: "req string",
+		Code:    httpCode,
+		Type:    "Header.Get(content-type)",
+		Body:    "resBody",
+		// request: node,
+		// Code:    res.StatusCode,
+		// Type:    res.Header.Get("Content-Type"),
+		// Body:    resBody,
+	}
 
 	client := &http.Client{}
 
@@ -116,25 +175,37 @@ func requestSender(outputFile *os.File, requestType string, body string, url str
 		req, err = http.NewRequest(http.MethodPost, url, strings.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 	} else {
-		return httpCode, fmt.Errorf("invalid request type: %s", requestType)
+		// return httpCode, fmt.Errorf("invalid request type: %s", requestType)
+		return httpCode, fmt.Errorf("invalid request type: %s", requestType), info
 	}
 
 	if err != nil {
-		return httpCode, fmt.Errorf("error creating HTTP request: %v", err)
+		return httpCode, fmt.Errorf("error creating HTTP request: %v", err), info
 	}
 
 	// Do da good request shit heheheheheh
 	resp, err := client.Do(req)
 	if err != nil {
-		return httpCode, fmt.Errorf("error performing HTTP request: %v", err)
+		return httpCode, fmt.Errorf("error performing HTTP request: %v", err), info
 	}
 	defer resp.Body.Close()
+
+	// Read the response body
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return httpCode, err, info
+	}
 
 	// Get the http request shit
 	httpCode = resp.StatusCode
 	checkResponse(httpCode, requestType, body, outputFile, resp)
 
-	return httpCode, nil
+	// Populate the ResponseInfo struct
+	info.Code = resp.StatusCode
+	info.Type = resp.Header.Get("Content-Type")
+	info.Body = string(respBody)
+
+	return httpCode, nil, info
 }
 
 func htmlFileInit() {
@@ -232,7 +303,7 @@ func Django_Test_Driver(energy int, url string, request_type string, input_file_
 			}
 			jsonString := string(jsonData)
 
-			httpCode, err := requestSender(responseFile, request_type, jsonString, url)
+			httpCode, err, info := requestSender(responseFile, request_type, jsonString, url)
 			if err != nil {
 				fmt.Println("FUCK IT WE BALLING IN REQUEST SENDER AND DIE", err)
 				break
@@ -242,6 +313,34 @@ func Django_Test_Driver(energy int, url string, request_type string, input_file_
 			if err != nil {
 				fmt.Println("FUCK IT WE BALLING IN LAST LINE AND DIE", err)
 				break
+			}
+
+			// mapCodes := map[int]int{}
+			// We need to store the response information here:
+			mapInfos := map[int][]*ResponseInfo{}
+			mapInfos[node.Group] = append(mapInfos[node.Group], info)
+
+			// Get test coverage levels
+			cov := getCoverageLevels(mapInfos)
+			endCov := Coverage{}
+			strictMode := false
+
+			// Compare with each test coverage level
+			isIncrease, newCov := isIndividualIncrease(cov.Levels, endCov.Levels, strictMode)
+
+			if isIncrease {
+
+				// Update coverage levels
+				endCov.Levels = newCov.Levels
+
+				// if guided {
+				// 	// Sava as new corpus
+				// 	b, err := proto.Marshal(x.grammar)
+				// 	if err != nil {
+				// 		panic(err)
+				// 	}
+				// 	x.corpus.Add(gofuzz.Artifact{Data: b})
+				// }
 			}
 
 			if !isInteresting(resString, httpCode) {
