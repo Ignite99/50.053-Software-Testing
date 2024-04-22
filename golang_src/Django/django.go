@@ -13,13 +13,13 @@ import (
 	"time"
 
 	logger "github.com/50.053-Software-Testing/HTML_Logger"
-	fuzzer "github.com/50.053-Software-Testing/fuzzer/json_mutator"
 	interesting "github.com/50.053-Software-Testing/IsInteresting"
+	fuzzer "github.com/50.053-Software-Testing/fuzzer/json_mutator"
 )
 
 var loggerInstance *logger.HTMLLogger
 
-var errorQ []interesting.Json_seed
+// var errorQ []interesting.Json_seed
 var inputQ []interesting.Json_seed
 
 func responseFileInit(path string) (*os.File, error) {
@@ -30,7 +30,6 @@ func responseFileInit(path string) (*os.File, error) {
 
 	return outputFile, nil
 }
-
 
 func checkResponse(httpCode int, requestType string, body string, file *os.File, resp *http.Response) {
 	var row []string
@@ -102,9 +101,9 @@ func requestSender(outputFile *os.File, requestType string, body string, url str
 
 	// Get the lastmost (current) seed from queue, parse responses, and add it to the current seed's output criteria
 	curSeed := inputQ[len(inputQ)-1]
-	curSeed.OC.ContentType, curSeed.OC.StatusCode, curSeed.OC.ResponseBody = interesting.ResponseParser(*resp)
+	curSeed.OC.ContentType, curSeed.OC.StatusCode, curSeed.OC.ResponseBodyProperties, curSeed.OC.ResponseBody = interesting.ResponseParser(*resp)
 	inputQ[len(inputQ)-1] = curSeed
-	
+
 	// Get the http request shit
 	httpCode = resp.StatusCode
 	checkResponse(httpCode, requestType, body, outputFile, resp)
@@ -214,32 +213,24 @@ func Django_Test_Driver(energy int, url string, request_type string, input_file_
 			}
 			jsonString := string(jsonData)
 
-			httpCode, err := requestSender(responseFile, request_type, jsonString, url)
+			_, err = requestSender(responseFile, request_type, jsonString, url)
 			if err != nil {
 				fmt.Println("FUCK IT WE BALLING IN REQUEST SENDER AND DIE", err)
 				break
 			}
 
-
-			
 			reqContentType := "json"
 			curSeed.IC = interesting.RequestParser(url, request_type, reqContentType, RequestBodyPropertiesTemp)
-			
-			
-			if i != 0 { // TODO,  wrong implementation since this i refers to energy.
-				prevSeed := inputQ[i-1]
-				var isInteresting = interesting.CheckIsInteresting(curSeed, prevSeed, errorQ)
 
-				if isInteresting == false {
-					// Not interesting, so remove new mutated input.
-					inputQ = inputQ[:len(inputQ)-1]
-					fmt.Printf("Seed removed. \n")
+			if i != 0 { // TODO,  wrong implementation since this i refers to energy.
+				isInteresting := interesting.CheckIsInteresting(curSeed)
+
+				if isInteresting {
+					// interesting, so add back new mutated input.
+					// inputQ = inputQ[:len(inputQ)-1]
+					// fmt.Printf("Seed removed. \n")
+					inputQ = append(inputQ, curSeed)
 				}
-			}
-			
-			// 400 error, append curSeed to the error_queue
-			if (httpCode / 100) % 10 == 4 {
-				errorQ = append(errorQ, curSeed)
 			}
 		}
 
