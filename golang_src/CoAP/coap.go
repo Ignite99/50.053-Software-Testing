@@ -386,7 +386,7 @@ func (fuzzer *CoAPFuzzer) run_fuzzer(path string) {
 	fuzzer.send_get_request(currSeed)
 
 	// send a DELETE request
-	fuzzer.send_delete_request(currSeed)
+	// fuzzer.send_delete_request(currSeed)
 
 	// send a POST request
 	fuzzer.send_post_request(currSeed)
@@ -402,7 +402,7 @@ func (fuzzer *CoAPFuzzer) run_fuzzer(path string) {
 		fuzzer.send_get_request(currSeed)
 
 		// send a DELETE request
-		fuzzer.send_delete_request(currSeed)
+		// fuzzer.send_delete_request(currSeed)
 
 		// send a POST request
 		fuzzer.send_post_request(currSeed)
@@ -461,6 +461,41 @@ func CoAPTestDriver(ip_addr string, port int) {
 	for _, path := range fuzzer.target_paths {
 		fmt.Println("Path: ", path)
 		fuzzer.run_fuzzer(path)
+	}
+
+	// fuzz the inputq until it is empty
+	for len(inputQ) > 0 {
+		currSeed := inputQ[0]
+		inputQ = inputQ[1:]
+
+		// send a GET request
+		fuzzer.send_get_request(currSeed)
+
+		// send a DELETE request
+		// fuzzer.send_delete_request(currSeed)
+
+		// send a POST request
+		fuzzer.send_post_request(currSeed)
+
+		// send a PUT request
+		fuzzer.send_put_request(currSeed)
+
+		for i := 0; i < currSeed.Energy; i++ {
+			mutated_payload := mutate_add_byte(currSeed.Data)
+			currSeed.Data = mutated_payload
+
+			// send a GET request
+			fuzzer.send_get_request(currSeed)
+
+			// send a DELETE request
+			// fuzzer.send_delete_request(currSeed)
+
+			// send a POST request
+			fuzzer.send_post_request(currSeed)
+
+			// send a PUT request
+			fuzzer.send_put_request(currSeed)
+		}
 	}
 
 	log.Printf("Total test cases: %d", fuzzer.total_test_cases)
