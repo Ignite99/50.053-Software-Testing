@@ -19,17 +19,19 @@ from bumble.transport import open_transport_or_link
 from bumble.utils import AsyncRunner
 from bumble.colors import color
 
+iterations = 10
+
 # -----------------------------------------------------------------------------
 # ------------------------PACKET MUTATOR---------------------------------------
 
 def packet_mutator(packet):
-    select_mutator = random.choice([0, 1, 2])
+    select_mutator = random.choice([0, 1])
     if select_mutator == 0:
-        print("[PACKET_MUTATOR]: flip_bit called")
+        # print("[PACKET_MUTATOR]: flip_bit called")
         return flip_bit(packet)
     else:
         # keep result as it is, no mutation
-        print("[PACKET_MUTATOR]: skip mutation")
+        # print("[PACKET_MUTATOR]: skip mutation")
         return packet
 
 # randomly choose bit to flip from a random byte
@@ -40,7 +42,7 @@ def flip_bit(packet):
     # set limit to 62 bits
     if result_byte > 62:
         result_byte = 62 
-    print("Flipped byte result: ", hex(result_byte)) 
+    # print("Flipped byte result: ", hex(result_byte)) 
     return result_byte
 
 # -----------------------------------------------------------------------------
@@ -117,10 +119,11 @@ class TargetEventsListener(Device.Listener):
         # -------- Main interaction with the target here --------
         print('=== Read/Write Attributes (Handles)')
         mutated_packet = 0x01
-        for attribute in attributes:
-            mutated_packet = packet_mutator(mutated_packet)
-            await write_target(target, attribute, mutated_packet)
-            await read_target(target, attribute)
+        for i in range(iterations):
+            for attribute in attributes:
+                mutated_packet = packet_mutator(mutated_packet)
+                await write_target(target, attribute, mutated_packet)
+                await read_target(target, attribute)
         
         print('---------------------------------------------------------------')
         print(color('[OK] Communication Finished', 'green'))
@@ -132,9 +135,13 @@ class TargetEventsListener(Device.Listener):
 # -----------------------------------------------------------------------------
 async def main():
     if len(sys.argv) != 2:
-        print('Usage: run_controller.py <transport-address>')
-        print('example: ./run_ble_tester.py tcp-server:0.0.0.0:9000')
+        print('Usage: run_controller.py <transport-address> <iterations>')
+        print('example: ./run_ble_tester.py tcp-server:0.0.0.0:9000 100')
         return
+    
+    if len(sys.argv) == 3:
+        global iterations
+        iterations = sys.argv[2]
 
     print('>>> Waiting connection to HCI...')
     async with await open_transport_or_link(sys.argv[1]) as (hci_source, hci_sink):
