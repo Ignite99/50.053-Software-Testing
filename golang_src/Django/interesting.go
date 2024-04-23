@@ -32,10 +32,56 @@ func getCoverageLevels(mapInfos map[int][]*ResponseInfo) Coverage {
 	tmpLevels := map[string]map[string]int{}
 
 
-	for path := range x.openAPI.Paths {
+	// iterate through all the respective paths
+	for path := range x.Paths {
 		goals[path] = map[string]Criteria{}
 
-	}
+	// 	// for each path, get respective method and operation
+	// 	for method, operation := range x.openAPI.Paths[path].Operations() {
+
+	// 		// Request
+	// 		ic := InputCriteria{
+	// 			Types: map[string]int{}, 
+	// 			Parameters: map[string]int{},
+	// 		}
+
+	// 		if operation.RequestBody == nil {
+
+	// 			// Request Parameters
+	// 			for _, parameter := range append(x.openAPI.Paths[path].Parameters, operation.Parameters...) {
+
+	// 				ic.Parameters[parameter.Value.Name]++
+
+	// 			}
+
+	// 		} else {
+	// 			for mediaType, content := range operation.RequestBody.Value.Content {
+
+	// 				// Request Types
+	// 				// JSON only
+	// 				if strings.Contains(strings.ToLower(mediaType), "json") {
+	// 					ic.Types["json"]++
+	// 				}
+
+	// 				// Request Parameters
+	// 				ex, err := example.GetBodyExample(example.ModeRequest, content)
+	// 				if err != nil {
+	// 					if x.strictMode {
+	// 						panic(err)
+	// 					}
+	// 				}
+
+	// 				for _, key := range getJSONKeys(ex) {
+
+	// 					ic.Parameters[key]++
+
+	// 				}
+
+	// 			}
+
+	// 		}
+
+	// }
 
 
 
@@ -43,9 +89,10 @@ func getCoverageLevels(mapInfos map[int][]*ResponseInfo) Coverage {
 	return cov
 }
 
-func isIndividualIncrease(a []int, b []int, print bool) (bool, Coverage) {
+func isIndividualIncrease(a []int, b []int) (bool, Coverage) {
 
 	flag := false
+
 	for i := 0; i < len(a); i++ {
 		if a[i] > b[i] {
 			flag = true
@@ -53,5 +100,6 @@ func isIndividualIncrease(a []int, b []int, print bool) (bool, Coverage) {
 			a[i] = b[i]
 		}
 	}
+	
 	return flag, Coverage{Levels: a}
 }

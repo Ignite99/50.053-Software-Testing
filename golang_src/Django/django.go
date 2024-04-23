@@ -19,7 +19,8 @@ import (
 
 // alternative x
 type FakeOpenApi struct {
-	Path *Paths
+	Path   *Paths
+	endCov Coverage
 }
 
 type Paths map[string]*PathItem
@@ -242,6 +243,8 @@ func Django_Test_Driver(energy int, url string, request_type string, input_file_
 	var filename string
 	var responseFile *os.File
 
+	x := &FakeOpenApi{}
+
 	// Create html logger method
 	footerFilePath := "./HTML_Logger/formats/footer.html"
 	htmlFileInit()
@@ -322,25 +325,20 @@ func Django_Test_Driver(energy int, url string, request_type string, input_file_
 
 			// Get test coverage levels
 			cov := getCoverageLevels(mapInfos)
-			endCov := Coverage{}
-			strictMode := false
 
 			// Compare with each test coverage level
-			isIncrease, newCov := isIndividualIncrease(cov.Levels, endCov.Levels, strictMode)
+			isIncrease, newCov := isIndividualIncrease(cov.Levels, x.endCov.Levels)
 
 			if isIncrease {
-
 				// Update coverage levels
-				endCov.Levels = newCov.Levels
+				x.endCov.Levels = newCov.Levels
 
-				// if guided {
 				// 	// Sava as new corpus
 				// 	b, err := proto.Marshal(x.grammar)
 				// 	if err != nil {
 				// 		panic(err)
 				// 	}
 				// 	x.corpus.Add(gofuzz.Artifact{Data: b})
-				// }
 			}
 
 			if !isInteresting(resString, httpCode) {
