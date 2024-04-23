@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
+	"strconv"
 	"strings"
 
 	coap "github.com/50.053-Software-Testing/CoAP"
@@ -136,7 +138,13 @@ func main() {
 
 	if projectType == "COAP" {
 		fmt.Println("[COAP] Fuzzer has initiated call to COAP!")
-		coap.CoAPTestDriver()
+		ip_addr := strings.Split(url, ":")[0]
+		port := strings.Split(url, ":")[1]
+		port_num, err := strconv.Atoi(port)
+		if err != nil {
+			log.Fatalf("Error converting port to integer: %v", err)
+		}
+		coap.CoAPTestDriver(ip_addr, port_num)
 		// CoAP_Handler()
 	} else if projectType == "DJANGO" {
 		fmt.Println("[DJANGO] Fuzzer has initiated call to DJANGO Web Application!")
