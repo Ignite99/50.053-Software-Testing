@@ -45,7 +45,8 @@ func RequestParser(path string, method string, contentType string, requestBodyPr
 	return ic
 }
 
-func ResponseParser(response http.Response) (string, int, []string, string) {
+// func ResponseParser(response http.Response) (string, int, []string, string) {
+func ResponseParser(response http.Response) OutputCriteria {
 	// fmt.Println("-------------------------")
 	// fmt.Println(response)
 	// fmt.Println("-------------------------")
@@ -72,9 +73,17 @@ func ResponseParser(response http.Response) (string, int, []string, string) {
 	// 	respBodyProperties = getJSONKeys(responseBody)
 	// }
 	respBodyProperties := getJSONKeys(responseBody)
-	fmt.Println("++ Response Body:", respBodyProperties)
+	fmt.Println("++ respBodyProperties:", respBodyProperties)
 
-	return contentType, statusCode, respBodyProperties, responseBodyStr
+	oc := OutputCriteria{
+		ContentType:            contentType,
+		StatusCode:             statusCode,
+		ResponseBody:           responseBodyStr,
+		ResponseBodyProperties: respBodyProperties,
+	}
+
+	// return contentType, statusCode, respBodyProperties, responseBodyStr
+	return oc
 }
 
 func getJSONKeys(respBody []byte) []string {
@@ -95,30 +104,6 @@ func getJSONKeys(respBody []byte) []string {
 
 // func CheckIsInteresting(currSeed Json_seed, prevSeed Json_seed, errorQ []Json_seed) bool {
 func CheckIsInteresting(currSeed Json_seed) bool {
-	// Considered not interesting if:
-	// 		- curSeed exists in histQ
-	// 		- curSeed exists in errorQ
-
-	// currIc := currSeed.IC
-	// prevIc := prevSeed.IC
-
-	// currOc := currSeed.OC
-	// prevOc := prevSeed.OC
-
-	// boolIcEqual := currIc.Path == prevIc.Path &&
-	// 	currIc.Method == prevIc.Method &&
-	// 	currIc.ContentType == prevIc.ContentType &&
-	// 	isContentTypeSame(currIc.RequestBodyProperties, prevIc.RequestBodyProperties)
-
-	// boolOcEqual := currOc.ContentType == prevOc.ContentType &&
-	// 	currOc.StatusCode == prevOc.StatusCode &&
-	// 	currOc.ResponseBody == prevOc.ResponseBody
-
-	// // TODO: Incomplete implementation of checking ErrorQ
-	// inErrorQ := isExistsInErrorQ(currSeed, errorQ)
-	// fmt.Printf("inErrorQ %s\n", inErrorQ)
-
-	// return !(boolIcEqual && boolOcEqual && inErrorQ)
 
 	// 0. Init  isInteresting
 	isInteresting := false

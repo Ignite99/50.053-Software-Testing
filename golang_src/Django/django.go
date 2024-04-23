@@ -72,7 +72,7 @@ func checkResponse(httpCode int, requestType string, body string, file *os.File,
 	}
 }
 
-func requestSender(outputFile *os.File, requestType string, body string, url string) (int, error) {
+func requestSender(outputFile *os.File, requestType string, body string, url string, curSeed interesting.Json_seed) (int, interesting.Json_seed, error) {
 	var httpCode int
 	var req *http.Request
 	var err error
@@ -85,30 +85,32 @@ func requestSender(outputFile *os.File, requestType string, body string, url str
 		req, err = http.NewRequest(http.MethodPost, url, strings.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 	} else {
-		return httpCode, fmt.Errorf("invalid request type: %s", requestType)
+		return httpCode, curSeed, fmt.Errorf("invalid request type: %s", requestType)
 	}
 
 	if err != nil {
-		return httpCode, fmt.Errorf("error creating HTTP request: %v", err)
+		return httpCode, curSeed, fmt.Errorf("error creating HTTP request: %v", err)
 	}
 
 	// Do da good request shit heheheheheh
 	resp, err := client.Do(req)
 	if err != nil {
-		return httpCode, fmt.Errorf("error performing HTTP request: %v", err)
+		return httpCode, curSeed, fmt.Errorf("error performing HTTP request: %v", err)
 	}
 	defer resp.Body.Close()
 
 	// Get the lastmost (current) seed from queue, parse responses, and add it to the current seed's output criteria
-	curSeed := inputQ[len(inputQ)-1]
-	curSeed.OC.ContentType, curSeed.OC.StatusCode, curSeed.OC.ResponseBodyProperties, curSeed.OC.ResponseBody = interesting.ResponseParser(*resp)
+	// curSeed := inputQ[len(inputQ)-1]
+	// curSeed.OC.ContentType, curSeed.OC.StatusCode, curSeed.OC.ResponseBodyProperties, curSeed.OC.ResponseBody = interesting.ResponseParser(*resp)
+	curSeed.OC = interesting.ResponseParser(*resp)
+
 	inputQ[len(inputQ)-1] = curSeed
 
 	// Get the http request shit
 	httpCode = resp.StatusCode
 	checkResponse(httpCode, requestType, body, outputFile, resp)
 
-	return httpCode, nil
+	return httpCode, curSeed, nil
 }
 
 func htmlFileInit() {
@@ -139,6 +141,7 @@ func htmlFileInit() {
 
 func Django_Test_Driver(energy int, url string, request_type string, input_file_path string, output_file_path string) {
 	var accumulated_iterations int
+	var interesting_count int
 	var testing_incomplete bool
 	var data map[string]interface{}
 	// var errorQ []json_seed
@@ -204,7 +207,7 @@ func Django_Test_Driver(energy int, url string, request_type string, input_file_
 
 			curSeed.Data = fuzzer.MutateRequests(request_type, curSeed.Data)
 
-			inputQ = append(inputQ, curSeed)
+			// inputQ = append(inputQ, curSeed)
 
 			jsonData, err := json.Marshal(curSeed.Data)
 			if err != nil {
@@ -213,7 +216,7 @@ func Django_Test_Driver(energy int, url string, request_type string, input_file_
 			}
 			jsonString := string(jsonData)
 
-			_, err = requestSender(responseFile, request_type, jsonString, url)
+			_, curSeed, err = requestSender(responseFile, request_type, jsonString, url, curSeed)
 			if err != nil {
 				fmt.Println("FUCK IT WE BALLING IN REQUEST SENDER AND DIE", err)
 				break
@@ -222,23 +225,24 @@ func Django_Test_Driver(energy int, url string, request_type string, input_file_
 			reqContentType := "json"
 			curSeed.IC = interesting.RequestParser(url, request_type, reqContentType, RequestBodyPropertiesTemp)
 
-			if i != 0 { // TODO,  wrong implementation since this i refers to energy.
-				isInteresting := interesting.CheckIsInteresting(curSeed)
+			isInteresting := interesting.CheckIsInteresting(curSeed)
 
-				if isInteresting {
-					// interesting, so add back new mutated input.
-					// inputQ = inputQ[:len(inputQ)-1]
-					// fmt.Printf("Seed removed. \n")
-					inputQ = append(inputQ, curSeed)
-				}
+			fmt.Printf("++ Iteration number: %d", accumulated_iterations)
+			fmt.Printf("++ Interesting count: %d", interesting_count)
+			accumulated_iterations++
+			if accumulated_iterations > 10000 {
+				testing_incomplete = false
+				break
 			}
-		}
 
-		accumulated_iterations++
-
-		if accumulated_iterations > 10 {
-			testing_incomplete = false
-			break
+			if isInteresting {
+				// Interesting to keep in Q
+				inputQ = append(inputQ, curSeed)
+				interesting_count++
+			} else {
+				// Not interesting so break mutation-energy lopo
+				break
+			}
 		}
 	}
 
