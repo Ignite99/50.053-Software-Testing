@@ -60,7 +60,7 @@ func fuzzingLoggerInit() {
 
 	outputFile, err := os.Create(filepath.Join(outputFilePath, outputFileName))
 	if err != nil {
-		log.Fatalf("failed to create output file: %v", err)
+		// log.Fatalf("failed to create output file: %v", err)
 	}
 	defer outputFile.Close()
 
@@ -88,7 +88,7 @@ func uniqueLoggerInit() {
 
 	outputFile, err := os.Create(filepath.Join(outputFilePath, outputFileName))
 	if err != nil {
-		log.Fatalf("failed to create output file: %v", err)
+		// log.Fatalf("failed to create output file: %v", err)
 	}
 	defer outputFile.Close()
 
@@ -120,7 +120,7 @@ func (fuzzer *CoAPFuzzer) get_paths() {
 	// return the paths
 	co, err := udp.Dial(fmt.Sprintf("%s:%d", fuzzer.target_ip, fuzzer.target_port))
 	if err != nil {
-		log.Fatalf("Error dialing: %v", err)
+		// log.Fatalf("Error dialing: %v", err)
 	}
 
 	path := ".well-known/core"
@@ -129,7 +129,7 @@ func (fuzzer *CoAPFuzzer) get_paths() {
 	defer cancel()
 	resp, err := co.Get(ctx, path)
 	if err != nil {
-		log.Fatalf("Error sending request: %v", err)
+		// log.Fatalf("Error sending request: %v", err)
 	}
 	body, err := resp.ReadBody()
 	responseString := string(body)
@@ -150,14 +150,14 @@ func (fuzzer *CoAPFuzzer) send_get_request(currSeed Seed) {
 
 	co, err := udp.Dial(fmt.Sprintf("%s:%d", fuzzer.target_ip, fuzzer.target_port))
 	if err != nil {
-		log.Fatalf("Error dialing: %v", err)
+		// log.Fatalf("Error dialing: %v", err)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 	resp, err := co.Get(ctx, path)
 	if err != nil {
-		log.Fatalf("Error sending request: %v", err)
+		// log.Fatalf("Error sending request: %v", err)
 		fuzzer.total_bugs_found++
 	}
 	body, err := resp.ReadBody()
@@ -201,7 +201,7 @@ func (fuzzer *CoAPFuzzer) send_post_request(currSeed Seed) {
 
 	co, err := udp.Dial(fmt.Sprintf("%s:%d", fuzzer.target_ip, fuzzer.target_port))
 	if err != nil {
-		log.Fatalf("Error dialing: %v", err)
+		// log.Fatalf("Error dialing: %v", err)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
@@ -212,7 +212,7 @@ func (fuzzer *CoAPFuzzer) send_post_request(currSeed Seed) {
 
 	resp, err := co.Post(ctx, path, content_format, msg_payload)
 	if err != nil {
-		log.Fatalf("Error sending request: %v", err)
+		// log.Fatalf("Error sending request: %v", err)
 		fuzzer.total_bugs_found++
 	}
 	body, err := resp.ReadBody()
@@ -263,7 +263,7 @@ func (fuzzer *CoAPFuzzer) send_put_request(currSeed Seed) {
 
 	co, err := udp.Dial(fmt.Sprintf("%s:%d", fuzzer.target_ip, fuzzer.target_port))
 	if err != nil {
-		log.Fatalf("Error dialing: %v", err)
+		// log.Fatalf("Error dialing: %v", err)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
@@ -274,7 +274,7 @@ func (fuzzer *CoAPFuzzer) send_put_request(currSeed Seed) {
 
 	resp, err := co.Put(ctx, path, content_format, msg_payload)
 	if err != nil {
-		log.Fatalf("Error sending request: %v", err)
+		// log.Fatalf("Error sending request: %v", err)
 		fuzzer.total_bugs_found++
 	}
 	body, err := resp.ReadBody()
@@ -320,14 +320,14 @@ func (fuzzer *CoAPFuzzer) send_delete_request(currSeed Seed) {
 
 	co, err := udp.Dial(fmt.Sprintf("%s:%d", fuzzer.target_ip, fuzzer.target_port))
 	if err != nil {
-		log.Fatalf("Error dialing: %v", err)
+		// log.Fatalf("Error dialing: %v", err)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 	resp, err := co.Delete(ctx, path)
 	if err != nil {
-		log.Fatalf("Error sending request: %v", err)
+		// log.Fatalf("Error sending request: %v", err)
 		fuzzer.total_bugs_found++
 	}
 	body, err := resp.ReadBody()
@@ -370,10 +370,10 @@ func (fuzzer *CoAPFuzzer) run_fuzzer(path string) {
 		log.Printf("Input Queue is empty! Exiting the program...")
 		footerFilePath := "./HTML_Logger/formats/footer.html"
 		if err := fuzzingLogger.CloseFile(footerFilePath); err != nil {
-			log.Fatalf("failed to close output file: %v", err)
+			// log.Fatalf("failed to close output file: %v", err)
 		}
-		if err := uniqueLogger.CloseFile(footerFilePath); err != nil {
-			log.Fatalf("failed to close output file: %v", err)
+		if err := errorLogger.CloseFile(footerFilePath); err != nil {
+			// log.Fatalf("failed to close output file: %v", err)
 		}
 		os.Exit(0)
 	}
@@ -388,7 +388,7 @@ func (fuzzer *CoAPFuzzer) run_fuzzer(path string) {
 	fuzzer.send_get_request(currSeed)
 
 	// send a DELETE request
-	fuzzer.send_delete_request(currSeed)
+	// fuzzer.send_delete_request(currSeed)
 
 	// send a POST request
 	fuzzer.send_post_request(currSeed)
@@ -404,7 +404,7 @@ func (fuzzer *CoAPFuzzer) run_fuzzer(path string) {
 		fuzzer.send_get_request(currSeed)
 
 		// send a DELETE request
-		fuzzer.send_delete_request(currSeed)
+		// fuzzer.send_delete_request(currSeed)
 
 		// send a POST request
 		fuzzer.send_post_request(currSeed)
@@ -461,7 +461,6 @@ func CoAPTestDriver(ip_addr string, port int) {
 
 	// fuzz the target
 	for _, path := range fuzzer.target_paths {
-		fmt.Println("Path: ", path)
 		fuzzer.run_fuzzer(path)
 	}
 
@@ -470,6 +469,7 @@ func CoAPTestDriver(ip_addr string, port int) {
 		log.Println("Number of test cases: ", fuzzer.total_test_cases)
 		log.Println("Number of bugs found: ", fuzzer.total_bugs_found)
 		log.Println("Number of interesting cases found: ", fuzzer.interesting_cases_found)
+
 		currSeed := inputQ[0]
 		inputQ = inputQ[1:]
 
@@ -512,9 +512,9 @@ func CoAPTestDriver(ip_addr string, port int) {
 	// close html instances
 	footerFilePath := "./HTML_Logger/formats/footer.html"
 	if err := fuzzingLogger.CloseFile(footerFilePath); err != nil {
-		log.Fatalf("failed to close output file: %v", err)
+		// log.Fatalf("failed to close output file: %v", err)
 	}
-	if err := uniqueLogger.CloseFile(footerFilePath); err != nil {
-		log.Fatalf("failed to close output file: %v", err)
+	if err := errorLogger.CloseFile(footerFilePath); err != nil {
+		// log.Fatalf("failed to close output file: %v", err)
 	}
 }
