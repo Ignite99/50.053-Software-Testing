@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"math/rand"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -107,8 +106,8 @@ func uniqueLoggerInit() {
 }
 
 func (fuzzer *CoAPFuzzer) IsInteresting(currSeed Seed) {
-	// if interesting, add to inputQ
-	if CheckIsInteresting(currSeed, uniqueQ) && currSeed.OC.StatusCode != "MethodNotAllowed" {
+	// if interesting and not methodnotallowed, add to inputQ
+	if CheckIsInteresting(currSeed, inputQ) && currSeed.OC.StatusCode != "MethodNotAllowed" {
 		fuzzer.interesting_cases_found++
 		inputQ = append(inputQ, currSeed)
 	}
@@ -372,7 +371,7 @@ func (fuzzer *CoAPFuzzer) run_fuzzer(path string) {
 		if err := fuzzingLogger.CloseFile(footerFilePath); err != nil {
 			// log.Fatalf("failed to close output file: %v", err)
 		}
-		if err := errorLogger.CloseFile(footerFilePath); err != nil {
+		if err := uniqueLogger.CloseFile(footerFilePath); err != nil {
 			// log.Fatalf("failed to close output file: %v", err)
 		}
 		os.Exit(0)
@@ -412,38 +411,6 @@ func (fuzzer *CoAPFuzzer) run_fuzzer(path string) {
 		// send a PUT request
 		fuzzer.send_put_request(currSeed)
 	}
-}
-
-func mutate_payload(payload string) string {
-	// convert the payload to a byte slice
-	payloadBytes := []byte(payload)
-
-	// perform byte manipulation on the payloadBytes
-	// e.g., reverse the bytes
-	for i, j := 0, len(payloadBytes)-1; i < j; i, j = i+1, j-1 {
-		payloadBytes[i], payloadBytes[j] = payloadBytes[j], payloadBytes[i]
-	}
-
-	// convert the byte slice back to a string
-	mutatedPayload := string(payloadBytes)
-
-	return mutatedPayload
-}
-
-func mutate_add_byte(payload string) string {
-	// convert the payload to a byte slice
-	payloadBytes := []byte(payload)
-
-	// add a random byte at a random position in the payloadBytes
-	rand.Seed(time.Now().UnixNano())
-	randomByte := byte(rand.Intn(256))
-	randomPosition := rand.Intn(len(payloadBytes) + 1)
-	payloadBytes = append(payloadBytes[:randomPosition], append([]byte{randomByte}, payloadBytes[randomPosition:]...)...)
-
-	// convert the byte slice back to a string
-	mutatedPayload := string(payloadBytes)
-
-	return mutatedPayload
 }
 
 func CoAPTestDriver(ip_addr string, port int) {
@@ -486,7 +453,7 @@ func CoAPTestDriver(ip_addr string, port int) {
 		fuzzer.send_put_request(currSeed)
 
 		for i := 0; i < currSeed.Energy; i++ {
-			mutated_payload := mutate_add_byte(currSeed.Data)
+			mutated_payload := mutate_random(currSeed.Data)
 			currSeed.Data = mutated_payload
 
 			// send a GET request
@@ -514,7 +481,7 @@ func CoAPTestDriver(ip_addr string, port int) {
 	if err := fuzzingLogger.CloseFile(footerFilePath); err != nil {
 		// log.Fatalf("failed to close output file: %v", err)
 	}
-	if err := errorLogger.CloseFile(footerFilePath); err != nil {
+	if err := uniqueLogger.CloseFile(footerFilePath); err != nil {
 		// log.Fatalf("failed to close output file: %v", err)
 	}
 }
