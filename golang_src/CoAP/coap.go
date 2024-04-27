@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -413,14 +414,25 @@ func (fuzzer *CoAPFuzzer) run_fuzzer(path string) {
 	}
 }
 
-func CoAPTestDriver(ip_addr string, port int) {
+func CoAPTestDriver(ip_addr string, port int, input_file_path string) {
 	fuzzer := CoAPFuzzer{target_ip: ip_addr, target_port: port, total_test_cases: 0}
 	fuzzer.get_paths()
-	payload := "Hello World"
 
-	// TODO - seed input should be from user input
-	// append the first payload (seed input) to the inputQ, giving an arbitrary energy of 3
-	inputQ = append(inputQ, Seed{payload, 3, OutputCriteria{"text", "", ""}, InputCriteria{"", "", "text"}})
+	payloadFile, err := os.Open(input_file_path)
+	if err != nil {
+		fmt.Println("Error opening input file:", err)
+		return
+	}
+	defer payloadFile.Close()
+
+	payload, err := io.ReadAll(payloadFile)
+	if err != nil {
+		fmt.Println("Error reading file:", err)
+		return
+	}
+
+	// append the first payload (seed input) to the inputQ, giving the specified energy
+	inputQ = append(inputQ, Seed{string(payload), 3, OutputCriteria{"text", "", ""}, InputCriteria{"", "", "text"}})
 
 	// create html instance
 	fuzzingLoggerInit()
@@ -431,7 +443,7 @@ func CoAPTestDriver(ip_addr string, port int) {
 		fuzzer.run_fuzzer(path)
 	}
 
-	// fuzz the inputq until it is empty
+	// fuzz the inputQ until it is empty or until terminated by user
 	for len(inputQ) > 0 {
 		log.Println("Number of test cases: ", fuzzer.total_test_cases)
 		log.Println("Number of bugs found: ", fuzzer.total_bugs_found)
@@ -443,7 +455,7 @@ func CoAPTestDriver(ip_addr string, port int) {
 		// send a GET request
 		fuzzer.send_get_request(currSeed)
 
-		// send a DELETE request
+		// uncomment for DELETE request
 		// fuzzer.send_delete_request(currSeed)
 
 		// send a POST request
@@ -459,7 +471,7 @@ func CoAPTestDriver(ip_addr string, port int) {
 			// send a GET request
 			fuzzer.send_get_request(currSeed)
 
-			// send a DELETE request
+			// uncomment for DELETE request
 			// fuzzer.send_delete_request(currSeed)
 
 			// send a POST request

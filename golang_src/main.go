@@ -144,7 +144,7 @@ func main() {
 		if err != nil {
 			log.Fatalf("Error converting port to integer: %v", err)
 		}
-		coap.CoAPTestDriver(ip_addr, port_num)
+		coap.CoAPTestDriver(ip_addr, port_num, inputFilePath)
 		// CoAP_Handler()
 	} else if projectType == "DJANGO" {
 		fmt.Println("[DJANGO] Fuzzer has initiated call to DJANGO Web Application!")
