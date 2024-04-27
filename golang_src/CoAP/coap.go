@@ -17,7 +17,7 @@ import (
 )
 
 var fuzzingLogger *logger.HTMLLogger
-var errorLogger *logger.HTMLLogger
+var uniqueLogger *logger.HTMLLogger
 
 type OutputCriteria struct {
 	ContentType string
@@ -38,15 +38,16 @@ type Seed struct {
 	IC     InputCriteria
 }
 
-var errorQ []Seed
+var uniqueQ []Seed
 var inputQ []Seed
 
 type CoAPFuzzer struct {
-	target_ip        string
-	target_port      int
-	target_paths     []string
-	total_test_cases int
-	total_bugs_found int
+	target_ip               string
+	target_port             int
+	target_paths            []string
+	total_test_cases        int
+	total_bugs_found        int
+	interesting_cases_found int
 }
 
 // initialise html file for fuzzingLogger
@@ -77,8 +78,8 @@ func fuzzingLoggerInit() {
 	fmt.Println("Fuzzing HTML logger created and used successfully.")
 }
 
-// initialise html file for errorLogger
-func errorLoggerInit() {
+// initialise html file for uniqueLogger
+func uniqueLoggerInit() {
 	var columnNames []string
 
 	outputFilePath := "./fuzzing_responses/"
@@ -92,22 +93,23 @@ func errorLoggerInit() {
 	defer outputFile.Close()
 
 	// Call constructor
-	errorLogger = logger.NewHTMLLogger(outputFilePath, outputFileName, projectType, outputFile)
+	uniqueLogger = logger.NewHTMLLogger(outputFilePath, outputFileName, projectType, outputFile)
 
-	errorLogger.CreateFile()
+	uniqueLogger.CreateFile()
 
-	errorLogger.AddText("text-align:center; font-size:26px", "CoAP Unique Responses List")
+	uniqueLogger.AddText("text-align:center; font-size:26px", "CoAP Unique Responses List")
 
 	// Initialise headings
 	columnNames = []string{"Time", "Path", "Method", "Request Payload", "Response Body", "Response Payload", "Message Type", "CoAP Code"}
-	errorLogger.CreateTableHeadings("background-color:lightgrey", columnNames)
+	uniqueLogger.CreateTableHeadings("background-color:lightgrey", columnNames)
 
 	fmt.Println("Error HTML logger created and used successfully.")
 }
 
 func (fuzzer *CoAPFuzzer) IsInteresting(currSeed Seed) {
 	// if interesting, add to inputQ
-	if CheckIsInteresting(currSeed, inputQ) {
+	if CheckIsInteresting(currSeed, uniqueQ) && currSeed.OC.StatusCode != "MethodNotAllowed" {
+		fuzzer.interesting_cases_found++
 		inputQ = append(inputQ, currSeed)
 	}
 }
@@ -183,10 +185,10 @@ func (fuzzer *CoAPFuzzer) send_get_request(currSeed Seed) {
 	currSeed.IC = ic
 	currSeed.OC = oc
 
-	// check if anything is interesting and should be put inside errorQ and errorLogger
-	if CheckIsInteresting(currSeed, errorQ) {
-		errorQ = append(errorQ, currSeed)
-		errorLogger.AddRowWithStyle("background-color:honeydew", row)
+	// check if anything is interesting and should be put inside uniqueQ and uniqueLogger
+	if CheckIsInteresting(currSeed, uniqueQ) {
+		uniqueQ = append(uniqueQ, currSeed)
+		uniqueLogger.AddRowWithStyle("background-color:honeydew", row)
 	}
 
 	co.Close()
@@ -242,10 +244,10 @@ func (fuzzer *CoAPFuzzer) send_post_request(currSeed Seed) {
 	currSeed.IC = ic
 	currSeed.OC = oc
 
-	// check if anything is interesting and should be put inside errorQ and errorLogger
-	if CheckIsInteresting(currSeed, errorQ) {
-		errorQ = append(errorQ, currSeed)
-		errorLogger.AddRowWithStyle("background-color:lightCyan", row)
+	// check if anything is interesting and should be put inside uniqueQ and uniqueLogger
+	if CheckIsInteresting(currSeed, uniqueQ) {
+		uniqueQ = append(uniqueQ, currSeed)
+		uniqueLogger.AddRowWithStyle("background-color:lightCyan", row)
 	}
 
 	// check if currSeed isInteresting, if yes, put in inputQ
@@ -300,10 +302,10 @@ func (fuzzer *CoAPFuzzer) send_put_request(currSeed Seed) {
 	currSeed.IC = ic
 	currSeed.OC = oc
 
-	// check if anything is interesting and should be put inside errorQ and errorLogger
-	if CheckIsInteresting(currSeed, errorQ) {
-		errorQ = append(errorQ, currSeed)
-		errorLogger.AddRowWithStyle("background-color:cornsilk", row)
+	// check if anything is interesting and should be put inside uniqueQ and uniqueLogger
+	if CheckIsInteresting(currSeed, uniqueQ) {
+		uniqueQ = append(uniqueQ, currSeed)
+		uniqueLogger.AddRowWithStyle("background-color:cornsilk", row)
 	}
 
 	// check if currSeed isInteresting, if yes, put in inputQ
@@ -353,10 +355,10 @@ func (fuzzer *CoAPFuzzer) send_delete_request(currSeed Seed) {
 	currSeed.IC = ic
 	currSeed.OC = oc
 
-	// check if anything is interesting and should be put inside errorQ and errorLogger
-	if CheckIsInteresting(currSeed, errorQ) {
-		errorQ = append(errorQ, currSeed)
-		errorLogger.AddRowWithStyle("background-color:lavenderBlush", row)
+	// check if anything is interesting and should be put inside uniqueQ and uniqueLogger
+	if CheckIsInteresting(currSeed, uniqueQ) {
+		uniqueQ = append(uniqueQ, currSeed)
+		uniqueLogger.AddRowWithStyle("background-color:lavenderBlush", row)
 	}
 
 	co.Close()
@@ -370,7 +372,7 @@ func (fuzzer *CoAPFuzzer) run_fuzzer(path string) {
 		if err := fuzzingLogger.CloseFile(footerFilePath); err != nil {
 			log.Fatalf("failed to close output file: %v", err)
 		}
-		if err := errorLogger.CloseFile(footerFilePath); err != nil {
+		if err := uniqueLogger.CloseFile(footerFilePath); err != nil {
 			log.Fatalf("failed to close output file: %v", err)
 		}
 		os.Exit(0)
@@ -455,12 +457,50 @@ func CoAPTestDriver(ip_addr string, port int) {
 
 	// create html instance
 	fuzzingLoggerInit()
-	errorLoggerInit()
+	uniqueLoggerInit()
 
 	// fuzz the target
 	for _, path := range fuzzer.target_paths {
 		fmt.Println("Path: ", path)
 		fuzzer.run_fuzzer(path)
+	}
+
+	// fuzz the inputq until it is empty
+	for len(inputQ) > 0 {
+		log.Println("Number of test cases: ", fuzzer.total_test_cases)
+		log.Println("Number of bugs found: ", fuzzer.total_bugs_found)
+		log.Println("Number of interesting cases found: ", fuzzer.interesting_cases_found)
+		currSeed := inputQ[0]
+		inputQ = inputQ[1:]
+
+		// send a GET request
+		fuzzer.send_get_request(currSeed)
+
+		// send a DELETE request
+		// fuzzer.send_delete_request(currSeed)
+
+		// send a POST request
+		fuzzer.send_post_request(currSeed)
+
+		// send a PUT request
+		fuzzer.send_put_request(currSeed)
+
+		for i := 0; i < currSeed.Energy; i++ {
+			mutated_payload := mutate_add_byte(currSeed.Data)
+			currSeed.Data = mutated_payload
+
+			// send a GET request
+			fuzzer.send_get_request(currSeed)
+
+			// send a DELETE request
+			// fuzzer.send_delete_request(currSeed)
+
+			// send a POST request
+			fuzzer.send_post_request(currSeed)
+
+			// send a PUT request
+			fuzzer.send_put_request(currSeed)
+		}
 	}
 
 	log.Printf("Total test cases: %d", fuzzer.total_test_cases)
@@ -474,7 +514,7 @@ func CoAPTestDriver(ip_addr string, port int) {
 	if err := fuzzingLogger.CloseFile(footerFilePath); err != nil {
 		log.Fatalf("failed to close output file: %v", err)
 	}
-	if err := errorLogger.CloseFile(footerFilePath); err != nil {
+	if err := uniqueLogger.CloseFile(footerFilePath); err != nil {
 		log.Fatalf("failed to close output file: %v", err)
 	}
 }
