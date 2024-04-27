@@ -414,7 +414,7 @@ func (fuzzer *CoAPFuzzer) run_fuzzer(path string) {
 	}
 }
 
-func CoAPTestDriver(ip_addr string, port int, input_file_path string) {
+func CoAPTestDriver(ip_addr string, port int, input_file_path string, energy int) {
 	fuzzer := CoAPFuzzer{target_ip: ip_addr, target_port: port, total_test_cases: 0}
 	fuzzer.get_paths()
 
@@ -431,8 +431,10 @@ func CoAPTestDriver(ip_addr string, port int, input_file_path string) {
 		return
 	}
 
+	log.Printf("Energy Assigned: %d", energy)
+
 	// append the first payload (seed input) to the inputQ, giving the specified energy
-	inputQ = append(inputQ, Seed{string(payload), 3, OutputCriteria{"text", "", ""}, InputCriteria{"", "", "text"}})
+	inputQ = append(inputQ, Seed{string(payload), energy, OutputCriteria{"text", "", ""}, InputCriteria{"", "", "text"}})
 
 	// create html instance
 	fuzzingLoggerInit()
@@ -465,7 +467,7 @@ func CoAPTestDriver(ip_addr string, port int, input_file_path string) {
 		fuzzer.send_put_request(currSeed)
 
 		for i := 0; i < currSeed.Energy; i++ {
-			mutated_payload := mutate_random(currSeed.Data)
+			mutated_payload := mutate_random(currSeed.Data, i)
 			currSeed.Data = mutated_payload
 
 			// send a GET request

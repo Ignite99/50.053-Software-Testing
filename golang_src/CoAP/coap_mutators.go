@@ -7,9 +7,9 @@ import (
 
 const symbols = "!@#$%^&*()_+-=[]{}|;:',.<>?~"
 
-func mutate_random(payload string) string {
-	// call a random mutation function
-	rand.Seed(time.Now().UnixNano())
+func mutate_random(payload string, iteration int) string {
+	// call a random mutation function, add with iteration to modify seed if time is too close
+	rand.Seed(time.Now().UnixNano() + int64(iteration))
 
 	mutationFunctions := []func(string) string{
 		mutate_add_byte,
@@ -187,7 +187,8 @@ func mutate_add_symbols(payload string) string {
 	payloadBytes := []byte(payload)
 
 	rand.Seed(time.Now().UnixNano())
-	numToAdd := rand.Intn(len(payloadBytes))
+
+	numToAdd := rand.Intn(50)
 
 	// add symbols to the payload
 	for i := 0; i < numToAdd; i++ {

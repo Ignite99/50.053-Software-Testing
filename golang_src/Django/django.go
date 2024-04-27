@@ -92,7 +92,7 @@ func requestSender(outputFile *os.File, requestType string, body string, url str
 		return httpCode, curSeed, fmt.Errorf("error creating HTTP request: %v", err)
 	}
 
-	// Do da good request shit heheheheheh
+	// Perform the HTTP request
 	resp, err := client.Do(req)
 	if err != nil {
 		return httpCode, curSeed, fmt.Errorf("error performing HTTP request: %v", err)
@@ -106,7 +106,7 @@ func requestSender(outputFile *os.File, requestType string, body string, url str
 
 	inputQ[len(inputQ)-1] = curSeed
 
-	// Get the http request shit
+	// Get the http request
 	httpCode = resp.StatusCode
 	checkResponse(httpCode, requestType, body, outputFile, resp)
 
@@ -218,7 +218,7 @@ func Django_Test_Driver(energy int, url string, request_type string, input_file_
 
 			_, curSeed, err = requestSender(responseFile, request_type, jsonString, url, curSeed)
 			if err != nil {
-				fmt.Println("FUCK IT WE BALLING IN REQUEST SENDER AND DIE", err)
+				fmt.Println("Error sending request: ", err)
 				break
 			}
 
@@ -240,7 +240,7 @@ func Django_Test_Driver(energy int, url string, request_type string, input_file_
 				inputQ = append(inputQ, curSeed)
 				interesting_count++
 			} else {
-				// Not interesting so break mutation-energy lopo
+				// Not interesting so break mutation-energy loop
 				break
 			}
 		}

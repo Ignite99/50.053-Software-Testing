@@ -18,20 +18,18 @@ var (
 		"BLE":    true,
 	}
 	validRequestTypes = map[string]bool{
-		"GET":    true,
-		"POST":   true,
-		"PUT":    true,
-		"HEAD":   true,
-		"DELETE": true,
+		"GET":  true,
+		"POST": true,
 	}
 )
 
 func main() {
 	var projectType string
 	var inputFilePath string
-	var outputFilePath string
+	var energy string
 	var url string
 	var requestType string
+	var energyInt int
 
 	if len(os.Args) != 6 && len(os.Args) != 1 {
 		fmt.Println("Error: Invalid arguments provided.")
@@ -45,7 +43,7 @@ func main() {
 		url = os.Args[2]
 		requestType = strings.ToUpper(os.Args[3])
 		inputFilePath = os.Args[4]
-		outputFilePath = os.Args[5]
+		energy = os.Args[5]
 
 		if !validProjectTypes[projectType] {
 			fmt.Println("Invalid project type. Please enter COAP/DJANGO/BLE.")
@@ -53,7 +51,7 @@ func main() {
 		}
 
 		if !validRequestTypes[requestType] {
-			fmt.Println("Invalid request type. Please enter GET/POST/PUT/HEAD/DELETE.")
+			fmt.Println("Invalid request type. Please enter GET/POST.")
 			return
 		}
 
@@ -64,12 +62,16 @@ func main() {
 		}
 		defer inputFile.Close()
 
-		outputFile, err := os.Open(os.Args[5])
+		energyInt, err = strconv.Atoi(energy)
 		if err != nil {
-			fmt.Println("Error: Could not open file", os.Args[5], err)
+			fmt.Println("Error: Cannot convert ", os.Args[5], " into integer.")
 			return
 		}
-		defer outputFile.Close()
+		if energyInt < 1 {
+			fmt.Println("Error: Energy cannot be negative.")
+			return
+		}
+
 	} else {
 		fmt.Println("What fuzzing target are you testing? [Options: COAP, DJANGO, BLE]")
 		var err error
@@ -93,7 +95,7 @@ func main() {
 			return
 		}
 
-		fmt.Println("\nWhat is your request type? [Options: GET, POST, PUT, HEAD, DELETE]")
+		fmt.Println("\nWhat is your request type? [Options: GET, POST]")
 		for {
 			_, err = fmt.Scanln(&requestType)
 			if err != nil {
@@ -122,15 +124,14 @@ func main() {
 		}
 
 		for {
-			fmt.Println("\nWhat is your output file path?")
-			_, err = fmt.Scanln(&outputFilePath)
+			fmt.Println("\nWhat is your energy assignment?")
+			_, err = fmt.Scanln(&energy)
+			energyInt, err = strconv.Atoi(energy)
 			if err != nil {
-				fmt.Println("Error reading input:", err)
-				continue
-			}
-			outputFile, err := os.Open(outputFilePath)
-			if err == nil {
-				defer outputFile.Close()
+				fmt.Println("Error: Cannot convert into integer.")
+			} else if energyInt < 1 {
+				fmt.Println("Error: Energy cannot be negative.")
+			} else {
 				break
 			}
 		}
@@ -144,11 +145,11 @@ func main() {
 		if err != nil {
 			log.Fatalf("Error converting port to integer: %v", err)
 		}
-		coap.CoAPTestDriver(ip_addr, port_num, inputFilePath)
+		coap.CoAPTestDriver(ip_addr, port_num, inputFilePath, energyInt)
 		// CoAP_Handler()
 	} else if projectType == "DJANGO" {
 		fmt.Println("[DJANGO] Fuzzer has initiated call to DJANGO Web Application!")
-		Django.Django_Test_Driver(1, url, requestType, inputFilePath, outputFilePath)
+		Django.Django_Test_Driver(energyInt, url, requestType, inputFilePath, "./fuzzing_responses/response.txt")
 
 	} else if projectType == "BLE" {
 		fmt.Println("[BLE] Fuzzer has initiated call to BLE_Zephyr!")
