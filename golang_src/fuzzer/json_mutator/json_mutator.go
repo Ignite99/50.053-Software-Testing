@@ -138,9 +138,6 @@ func MutateRequests(requestType string, data map[string]interface{}) map[string]
 				randomizeValue(data, keys[index])
 			}
 		}
-	} else if requestType == "GET" {
-		// TODO: handle GET request JSON mutations
-		fmt.Println("HRMMMMMMMMM GET REQUETS DED HRMMM")
 	}
 
 	return data

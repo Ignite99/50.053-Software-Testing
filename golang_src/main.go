@@ -34,7 +34,7 @@ func main() {
 	if len(os.Args) != 6 && len(os.Args) != 1 {
 		fmt.Println("Error: Invalid arguments provided.")
 		fmt.Println("The expected format is:")
-		fmt.Println(os.Args[0], "<project type> <url> <request_type> <input_file_path> <output_file_path>")
+		fmt.Println(os.Args[0], "<project type> <url> <request_type> <input_file_path> <energy>")
 		return
 	}
 
