@@ -229,10 +229,10 @@ func Django_Test_Driver(energy int, url string, request_type string, input_file_
 			fmt.Printf("++ Iteration number: %d", accumulated_iterations)
 			fmt.Printf("++ Interesting count: %d", interesting_count)
 			accumulated_iterations++
-			if accumulated_iterations > 10000 {
-				testing_incomplete = false
-				break
-			}
+			// if accumulated_iterations > 10000 {
+			// 	testing_incomplete = false
+			// 	break
+			// }
 
 			if isInteresting {
 				// Interesting to keep in Q
