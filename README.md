@@ -1,11 +1,14 @@
 # HTTP, CoAP, BLE Fuzzer (Team 5)
 
 ## Group Members
-- Andrean Priadi (1005632)
-- Eliana Setiabudi (1005252)
-- Nathan Chang (1005149)
-- Nicholas Goh (1005194)
-- Nur Thohirah Bte Sani (1005463)
+
+| Member Name  | Student ID | Year |
+| ------------- | ------------- | ------------- |
+| Andrean Priadi | 1005632  | Senior |
+| Eliana Setiabudi  | 1005252 | Senior |
+| Nathan Chang | 1005149  | Senior |
+| Nicholas Goh | 1005194 | Senior |
+| Nur Thohirah Bte Sani | 1005463 | Senior |
 
 ## About
 
@@ -39,11 +42,11 @@ E.g.
   "info": "abcd",
   "price": "1000"
 }
-4. Then run: go run main.go DJANGO http://127.0.0.1:8000/datatb/product/add/ POST ./inputs/add_product.json 200
+4. Then run: `go run main.go DJANGO http://127.0.0.1:8000/datatb/product/add/ POST ./inputs/add_product.json 200`
 5. The output logger, `log.html`, will be updated in `golang_src/fuzzing_responses`.
 
 ### Fuzzing CoAP
-1. Assuming you have python2 and CoAPthon dependencies already, cd to the CoAPthon directory
+1. Assuming you have python2 and CoAPthon dependencies already, `cd` to the CoAPthon directory
 2. Run the server with `python2 coapserver.py -i 127.0.0.1 -p 5683`
 3. Next, open the fuzzer directory and `cd golang_src`
 4. Enter `go run main.go COAP 127.0.0.1:5683 POST ./inputs/hello_world.txt 3`     

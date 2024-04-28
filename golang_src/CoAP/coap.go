@@ -107,8 +107,8 @@ func uniqueLoggerInit() {
 }
 
 func (fuzzer *CoAPFuzzer) IsInteresting(currSeed Seed) {
-	// if interesting and not methodnotallowed, add to inputQ
-	if CheckIsInteresting(currSeed, inputQ) && currSeed.OC.StatusCode != "MethodNotAllowed" {
+	// if interesting, add to inputQ
+	if CheckIsInteresting(currSeed, inputQ) {
 		fuzzer.interesting_cases_found++
 		inputQ = append(inputQ, currSeed)
 	}
