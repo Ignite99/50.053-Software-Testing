@@ -1,4 +1,4 @@
-package Interesting
+package Django
 
 import (
 	"encoding/json"
@@ -125,33 +125,6 @@ func CheckIsInteresting(currSeed Json_seed) bool {
 	}
 	return isInteresting
 }
-
-// func isContentTypeSame(arr1 []string, arr2 []string) bool {
-
-// 	if len(arr1) != len(arr2) {
-// 		return false
-// 	}
-
-// 	sort.Strings(arr1)
-// 	sort.Strings(arr2)
-
-// 	for i := range arr1 {
-// 		if arr1[i] != arr2[i] {
-// 			return false
-// 		}
-// 	}
-
-// 	return true
-// }
-
-// func isExistsInErrorQ(currSeed Json_seed, errorQ []Json_seed) bool {
-// 	for _, seed := range errorQ {
-// 		if reflect.DeepEqual(seed, currSeed) {
-// 			return true
-// 		}
-// 	}
-// 	return false
-// }
 
 func seedExistsHistQ(currSeed Json_seed, histQ []Json_seed) bool {
 

@@ -13,14 +13,13 @@ import (
 	"time"
 
 	logger "github.com/50.053-Software-Testing/HTML_Logger"
-	interesting "github.com/50.053-Software-Testing/IsInteresting"
 	fuzzer "github.com/50.053-Software-Testing/fuzzer/json_mutator"
 )
 
 var loggerInstance *logger.HTMLLogger
 
 // var errorQ []interesting.Json_seed
-var inputQ []interesting.Json_seed
+var inputQ []Json_seed
 
 func responseFileInit(path string) (*os.File, error) {
 	outputFile, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0644)
@@ -60,7 +59,7 @@ func checkResponse(httpCode int, requestType string, body string, file *os.File,
 		fmt.Printf("Row: %s\n", row)
 		loggerInstance.AddRowWithStyle("background-color:tomato", row)
 
-		// Write the response body to the file for fucked up responses
+		// Write the response body to the file for error responses
 		_, _ = file.WriteString("\n")
 		_, err := io.Copy(file, resp.Body)
 		if err != nil {
@@ -72,7 +71,7 @@ func checkResponse(httpCode int, requestType string, body string, file *os.File,
 	}
 }
 
-func requestSender(outputFile *os.File, requestType string, body string, url string, curSeed interesting.Json_seed) (int, interesting.Json_seed, error) {
+func requestSender(outputFile *os.File, requestType string, body string, url string, curSeed Json_seed) (int, Json_seed, error) {
 	var httpCode int
 	var req *http.Request
 	var err error
@@ -92,7 +91,7 @@ func requestSender(outputFile *os.File, requestType string, body string, url str
 		return httpCode, curSeed, fmt.Errorf("error creating HTTP request: %v", err)
 	}
 
-	// Do da good request shit heheheheheh
+	// Perform the HTTP request
 	resp, err := client.Do(req)
 	if err != nil {
 		return httpCode, curSeed, fmt.Errorf("error performing HTTP request: %v", err)
@@ -102,11 +101,11 @@ func requestSender(outputFile *os.File, requestType string, body string, url str
 	// Get the lastmost (current) seed from queue, parse responses, and add it to the current seed's output criteria
 	// curSeed := inputQ[len(inputQ)-1]
 	// curSeed.OC.ContentType, curSeed.OC.StatusCode, curSeed.OC.ResponseBodyProperties, curSeed.OC.ResponseBody = interesting.ResponseParser(*resp)
-	curSeed.OC = interesting.ResponseParser(*resp)
+	curSeed.OC = ResponseParser(*resp)
 
 	inputQ[len(inputQ)-1] = curSeed
 
-	// Get the http request shit
+	// Get the http request
 	httpCode = resp.StatusCode
 	checkResponse(httpCode, requestType, body, outputFile, resp)
 
@@ -185,7 +184,7 @@ func Django_Test_Driver(energy int, url string, request_type string, input_file_
 	var RequestBodyPropertiesTemp []string
 
 	for key, _ := range data {
-		seed := interesting.Json_seed{
+		seed := Json_seed{
 			Data:          data,
 			Key_to_mutate: key,
 			Energy:        3,
@@ -218,14 +217,14 @@ func Django_Test_Driver(energy int, url string, request_type string, input_file_
 
 			_, curSeed, err = requestSender(responseFile, request_type, jsonString, url, curSeed)
 			if err != nil {
-				fmt.Println("FUCK IT WE BALLING IN REQUEST SENDER AND DIE", err)
+				fmt.Println("Error sending request: ", err)
 				break
 			}
 
 			reqContentType := "json"
-			curSeed.IC = interesting.RequestParser(url, request_type, reqContentType, RequestBodyPropertiesTemp)
+			curSeed.IC = RequestParser(url, request_type, reqContentType, RequestBodyPropertiesTemp)
 
-			isInteresting := interesting.CheckIsInteresting(curSeed)
+			isInteresting := CheckIsInteresting(curSeed)
 
 			fmt.Printf("++ Iteration number: %d", accumulated_iterations)
 			fmt.Printf("++ Interesting count: %d", interesting_count)
@@ -240,7 +239,7 @@ func Django_Test_Driver(energy int, url string, request_type string, input_file_
 				inputQ = append(inputQ, curSeed)
 				interesting_count++
 			} else {
-				// Not interesting so break mutation-energy lopo
+				// Not interesting so break mutation-energy loop
 				break
 			}
 		}
