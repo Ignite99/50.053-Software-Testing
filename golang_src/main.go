@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/50.053-Software-Testing/BLE"
 	coap "github.com/50.053-Software-Testing/CoAP"
 	"github.com/50.053-Software-Testing/Django"
 )
@@ -153,7 +154,7 @@ func main() {
 
 	} else if projectType == "BLE" {
 		fmt.Println("[BLE] Fuzzer has initiated call to BLE_Zephyr!")
-		// BLE_Zephyr_Handler()
+		BLE.BLE_Zephyr_Handler()
 
 	} else {
 		fmt.Println("Project type mutated. Project type: " + projectType + ". Check code now!")
